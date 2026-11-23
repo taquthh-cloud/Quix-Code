@@ -2,9 +2,9 @@
 
 use App\Enums\TicketCategory;
 use App\Enums\TicketPriority;
+use App\Livewire\Portal\ProjectOverview;
 use App\Models\Project;
 use App\Models\User;
-use App\Livewire\Portal\ProjectOverview;
 use Livewire\Livewire;
 
 it('shows project progress and milestones only to the owning client', function () {

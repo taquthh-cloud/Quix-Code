@@ -7,7 +7,7 @@ use App\Enums\TicketPriority;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\RevisionTicket;
-use Illuminate\Support\Facades\Rule;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;

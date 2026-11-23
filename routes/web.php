@@ -1,20 +1,20 @@
 <?php
-use App\Http\Controllers\LocaleController;
-use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\Portal\OverviewController;
 use App\Livewire\Admin\Leads\Index as LeadsIndex;
 use App\Livewire\Admin\Projects\Form as ProjectForm;
+use App\Livewire\Admin\Projects\Index as ProjectIndex;
 use App\Livewire\Admin\Projects\Negotiation as ProjectNegotiation;
+use App\Livewire\Admin\Projects\Show as ProjectShow;
 use App\Livewire\Admin\Quotations\Builder as QuotationBuilder;
 use App\Livewire\Portal\Negotiation as PortalNegotiation;
 use App\Livewire\Portal\ProjectOverview as PortalProjectOverview;
-use App\Livewire\Admin\Projects\Index as ProjectIndex;
-use App\Livewire\Admin\Projects\Show as ProjectShow;
 use App\Models\Project;
+use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
-
 
 // Pilihan bahasa (ID/EN), disimpan di cookie dan users.locale.
 Route::post('locale/{locale}', LocaleController::class)->name('locale.update');
