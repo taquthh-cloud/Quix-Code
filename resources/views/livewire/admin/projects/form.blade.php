@@ -37,6 +37,15 @@
                 </div>
             @endunless
 
+            @unless ($editing)
+                <flux:select wire:model="lead_source" :label="__('projects.form.lead_source')">
+                    @foreach (['manual', 'referral', 'instagram', 'website', 'whatsapp', 'other'] as $source)
+                        <flux:select.option :value="$source">{{ __('projects.lead_sources.'.$source) }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+                <flux:error name="lead_source" />
+            @endunless
+
             <flux:input wire:model="title" :label="__('projects.form.title')" required />
             <flux:textarea wire:model="description" :label="__('projects.form.description')" rows="4" />
 

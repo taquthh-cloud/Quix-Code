@@ -23,6 +23,10 @@ return [
     'leads' => [
         'title' => 'Prospek & Quotation',
         'subtitle' => 'Proyek yang masih dalam tahap intake dan negosiasi.',
+        'add' => 'Catat lead',
+        'filter_status' => 'Filter status',
+        'all_statuses' => 'Semua tahap',
+        'source' => 'Sumber lead',
         'none' => 'Belum ada prospek',
         'none_hint' => 'Prospek baru dari form atau yang Anda buat manual akan muncul di sini.',
         'latest' => 'Penawaran terakhir',

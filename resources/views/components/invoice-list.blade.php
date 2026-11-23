@@ -13,9 +13,14 @@
                         @if ($invoice->due_date) · {{ __('quotations.due') }} {{ $invoice->due_date->translatedFormat('d M Y') }} @endif
                     </span>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center justify-end gap-3">
                     <span class="tabular-nums">{{ $invoice->money()->format() }}</span>
                     <x-badge-status :status="$invoice->status" />
+                    <a href="{{ route('admin.invoices.print', $invoice->id) }}" target="_blank" rel="noopener noreferrer"
+                       class="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-growth hover:text-growth dark:border-slate-700 dark:text-slate-200"
+                       aria-label="{{ __('projects.invoice.print_invoice', ['number' => $invoice->invoice_number]) }}">
+                        {{ __('projects.invoice.print') }}
+                    </a>
                 </div>
             </li>
         @endforeach

@@ -9,6 +9,7 @@ use App\Enums\UserRole;
 use App\Models\ActivityLog;
 use App\Models\Project;
 use App\Models\ProjectMilestone;
+use App\Models\ProjectNote;
 use App\Models\User;
 use App\Support\ActivityLogger;
 use Flux\Flux;
@@ -42,6 +43,8 @@ class Show extends Component
     public string $progress = '0';
 
     public string $statusReason = '';
+
+    public string $noteBody = '';
 
     public string $staffId = '';
 
@@ -363,6 +366,40 @@ class Show extends Component
         $this->redirectRoute('admin.projects.index', navigate: true);
     }
 
+    // ------------------------------------------------------------------ catatan internal
+
+    public function addNote(): void
+    {
+        abort_unless(auth()->user()->isAdmin(), 403);
+        $data = $this->validate([
+            'noteBody' => ['required', 'string', 'max:5000'],
+        ]);
+        $project = $this->project;
+
+        DB::transaction(function () use ($project, $data): void {
+            $note = ProjectNote::query()->create([
+                'project_id' => $project->id,
+                'user_id' => auth()->id(),
+                'body' => trim($data['noteBody']),
+            ]);
+            ActivityLogger::log(ActivityAction::ProjectNoteCreated, $note, ['project_id' => $project->id]);
+        });
+
+        $this->reset('noteBody');
+        Flux::toast(variant: 'success', text: __('projects.notes.saved'));
+    }
+
+    public function deleteNote(int $noteId): void
+    {
+        abort_unless(auth()->user()->isAdmin(), 403);
+        $note = ProjectNote::query()
+            ->where('project_id', $this->project->id)
+            ->findOrFail($noteId);
+        $note->delete();
+
+        Flux::toast(variant: 'success', text: __('projects.notes.deleted'));
+    }
+
     // ------------------------------------------------------------------ util
 
     private function findMilestone(int $id): ProjectMilestone
@@ -437,6 +474,7 @@ class Show extends Component
                     ->orderBy('name')->get(['id', 'name'])
                 : collect(),
             'activities' => $activities,
+            'notes' => $isAdmin ? $project->notes()->with('author:id,name')->limit(20)->get() : collect(),
             'descriptions' => $activities->mapWithKeys(fn (ActivityLog $log) => [$log->id => $this->describe($log)]),
             'milestoneStatuses' => MilestoneStatus::cases(),
         ])->title($project->title);

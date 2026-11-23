@@ -10,7 +10,7 @@ return [
     ],
     'invoice_type' => ['dp' => 'Down Payment', 'termin' => 'Installment', 'final' => 'Final Payment'],
     'invoice_status' => [
-        'unpaid' => 'Unpaid', 'awaiting_verification' => 'Awaiting Verification',
+        'draft' => 'Draft', 'sent' => 'Sent', 'unpaid' => 'Unpaid', 'awaiting_verification' => 'Awaiting Verification',
         'paid' => 'Paid', 'cancelled' => 'Cancelled', 'void' => 'Void',
     ],
     'ticket_status' => ['open' => 'Open', 'in_progress' => 'In Progress', 'resolved' => 'Resolved', 'closed' => 'Closed'],

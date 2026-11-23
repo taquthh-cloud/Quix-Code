@@ -188,6 +188,29 @@
                         <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('projects.show.no_activity') }}</p>
                     @endforelse
                 </x-card>
+
+                <x-card :title="__('projects.notes.title')">
+                    @if ($notes->isEmpty())
+                        <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('projects.notes.empty') }}</p>
+                    @else
+                        <ul class="mb-4 divide-y divide-slate-200 dark:divide-slate-800">
+                            @foreach ($notes as $note)
+                                <li wire:key="project-note-{{ $note->id }}" class="flex items-start justify-between gap-3 py-3">
+                                    <div>
+                                        <p class="whitespace-pre-line text-sm text-slate-800 dark:text-slate-200">{{ $note->body }}</p>
+                                        <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ $note->author?->name }} · {{ $note->created_at->diffForHumans() }}</p>
+                                    </div>
+                                    <flux:button size="sm" variant="ghost" icon="trash" :aria-label="__('projects.notes.delete')" wire:click="deleteNote({{ $note->id }})" wire:confirm="{{ __('projects.notes.confirm_delete') }}" />
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                    <form wire:submit="addNote" class="flex flex-col gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+                        <flux:textarea wire:model="noteBody" :label="__('projects.notes.new')" rows="3" />
+                        <flux:error name="noteBody" />
+                        <div class="flex justify-end"><flux:button type="submit">{{ __('projects.notes.add') }}</flux:button></div>
+                    </form>
+                </x-card>
             @endif
         </div>
 

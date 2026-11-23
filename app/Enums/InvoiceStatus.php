@@ -8,6 +8,8 @@ namespace App\Enums;
  */
 enum InvoiceStatus: string
 {
+    case Draft = 'draft';
+    case Sent = 'sent';
     case Unpaid = 'unpaid';
     case AwaitingVerification = 'awaiting_verification'; // bukti sudah diunggah, menunggu admin
     case Paid = 'paid';
@@ -27,13 +29,14 @@ enum InvoiceStatus: string
     /** Klien masih boleh mengunggah bukti bayar. */
     public function acceptsPayment(): bool
     {
-        return $this === self::Unpaid;
+        return in_array($this, [self::Sent, self::Unpaid], true);
     }
 
     public function color(): string
     {
         return match ($this) {
-            self::Unpaid => 'amber',
+            self::Draft => 'slate',
+            self::Unpaid, self::Sent => 'amber',
             self::AwaitingVerification => 'sky',
             self::Paid => 'emerald',
             self::Cancelled, self::Void => 'zinc',

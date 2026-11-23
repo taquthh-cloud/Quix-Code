@@ -1,13 +1,21 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\InvoicePrintController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProjectFileController;
+use App\Http\Controllers\PaymentProofController;
 use App\Http\Middleware\RequireAdminTwoFactor;
 use App\Http\Controllers\Portal\OverviewController;
 use App\Livewire\Admin\Leads\Index as LeadsIndex;
 use App\Livewire\Admin\Projects\Form as ProjectForm;
 use App\Livewire\Admin\Projects\Index as ProjectIndex;
+use App\Livewire\Admin\Activity\Index as ActivityIndex;
+use App\Livewire\Admin\Billing\Index as BillingIndex;
+use App\Livewire\Admin\Projects\InvoiceManager;
+use App\Livewire\Admin\Projects\Kanban;
+use App\Livewire\Admin\Settings\Index as SettingsIndex;
+use App\Livewire\Admin\Team\Index as TeamIndex;
 use App\Livewire\Admin\Projects\Negotiation as ProjectNegotiation;
 use App\Livewire\Admin\Projects\Show as ProjectShow;
 use App\Livewire\Admin\Quotations\Builder as QuotationBuilder;
@@ -23,6 +31,12 @@ Route::post('locale/{locale}', LocaleController::class)->name('locale.update');
 Route::get('files/{file}', ProjectFileController::class)
     ->middleware(['auth', 'verified'])
     ->name('files.download');
+Route::get('invoices/{invoice}/print', InvoicePrintController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('admin.invoices.print');
+Route::get('payments/{payment}/proof', PaymentProofController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('admin.payments.proof');
 
 /*
  * Pintu masuk tunggal setelah login. Semua alur Fortify (login, 2FA, passkey,
@@ -47,6 +61,12 @@ Route::middleware(['auth', 'verified', 'can:access-internal', RequireAdminTwoFac
             ->name('projects.create');
         Route::livewire('projects/{project}', ProjectShow::class)->name('projects.show');
         Route::livewire('projects/{project}/edit', ProjectForm::class)->name('projects.edit');
+        Route::livewire('projects/{project}/invoices', InvoiceManager::class)->middleware('can:admin')->name('projects.invoices');
+        Route::livewire('team', TeamIndex::class)->middleware('can:admin')->name('team.index');
+        Route::livewire('settings', SettingsIndex::class)->middleware('can:admin')->name('settings');
+        Route::livewire('kanban', Kanban::class)->name('kanban');
+        Route::livewire('billing', BillingIndex::class)->middleware('can:admin')->name('billing.index');
+        Route::livewire('activity', ActivityIndex::class)->middleware('can:admin')->name('activity');
 
         // Quotation & Negosiasi (Tahap 3). Staf ditolak oleh QuotationPolicy/ChatPolicy di komponen.
         Route::livewire('leads', LeadsIndex::class)->middleware('can:admin')->name('leads.index');

@@ -63,6 +63,13 @@
             </x-card>
 
             <x-card :title="__('quotations.negotiation.invoices')">
+                @can('create', [\App\Models\Invoice::class, $project])
+                    <div class="mb-4 flex justify-end">
+                        <flux:button size="sm" variant="primary" icon="plus" :href="route('admin.projects.invoices', $project->id)" wire:navigate>
+                            {{ __('projects.invoice.create') }}
+                        </flux:button>
+                    </div>
+                @endcan
                 <x-invoice-list :invoices="$invoices" />
             </x-card>
         </div>

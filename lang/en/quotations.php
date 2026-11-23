@@ -23,6 +23,10 @@ return [
     'leads' => [
         'title' => 'Leads & Quotations',
         'subtitle' => 'Projects still in intake and negotiation.',
+        'add' => 'Add lead',
+        'filter_status' => 'Filter by status',
+        'all_statuses' => 'All stages',
+        'source' => 'Lead source',
         'none' => 'No leads yet',
         'none_hint' => 'New leads from the form, or ones you create manually, will show up here.',
         'latest' => 'Latest quotation',

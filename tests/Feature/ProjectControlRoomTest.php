@@ -24,6 +24,31 @@ beforeEach(function () {
     $this->client = User::factory()->client()->create();
 });
 
+it('admin can add and remove internal project notes while assigned staff cannot', function () {
+    $project = Project::factory()->for($this->client, 'client')->create();
+    $project->staff()->attach($this->staff->id);
+
+    $this->actingAs($this->admin);
+    Livewire::test(Show::class, ['project' => $project->id])
+        ->set('noteBody', 'Follow up on delivery scope')
+        ->call('addNote')
+        ->assertHasNoErrors()
+        ->assertSee('Follow up on delivery scope');
+
+    $note = $project->notes()->firstOrFail();
+    expect($note->user_id)->toBe($this->admin->id);
+
+    $this->actingAs($this->staff);
+    Livewire::test(Show::class, ['project' => $project->id])
+        ->assertDontSee('Follow up on delivery scope')
+        ->call('addNote')
+        ->assertForbidden();
+
+    $this->actingAs($this->admin);
+    Livewire::test(Show::class, ['project' => $project->id])->call('deleteNote', $note->id);
+    expect($project->notes()->count())->toBe(0);
+});
+
 // ------------------------------------------------------------------ daftar
 
 it('admin melihat semua proyek, staf hanya yang ditugaskan, klien ditolak', function () {

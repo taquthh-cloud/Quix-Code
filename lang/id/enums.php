@@ -10,7 +10,7 @@ return [
     ],
     'invoice_type' => ['dp' => 'Uang Muka (DP)', 'termin' => 'Termin', 'final' => 'Pelunasan'],
     'invoice_status' => [
-        'unpaid' => 'Belum Dibayar', 'awaiting_verification' => 'Menunggu Verifikasi',
+        'draft' => 'Draf', 'sent' => 'Terkirim', 'unpaid' => 'Belum Dibayar', 'awaiting_verification' => 'Menunggu Verifikasi',
         'paid' => 'Lunas', 'cancelled' => 'Dibatalkan', 'void' => 'Divoid',
     ],
     'ticket_status' => ['open' => 'Terbuka', 'in_progress' => 'Dikerjakan', 'resolved' => 'Selesai', 'closed' => 'Ditutup'],

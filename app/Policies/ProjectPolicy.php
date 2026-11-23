@@ -88,6 +88,7 @@ class ProjectPolicy
             ->whereColumn('paid_amount', '>=', 'amount')
             ->exists();
         $hasOutstanding = (clone $final)->whereIn('status', [
+            InvoiceStatus::Sent->value,
             InvoiceStatus::Unpaid->value,
             InvoiceStatus::AwaitingVerification->value,
         ])->exists();

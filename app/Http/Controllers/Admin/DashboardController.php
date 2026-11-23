@@ -38,7 +38,7 @@ class DashboardController extends Controller
 
         if ($user->isAdmin()) {
             $invoices = Invoice::query()
-                ->whereIn('status', [InvoiceStatus::Unpaid->value, InvoiceStatus::AwaitingVerification->value])
+                ->whereIn('status', [InvoiceStatus::Sent->value, InvoiceStatus::Unpaid->value, InvoiceStatus::AwaitingVerification->value])
                 ->selectRaw('currency, status, count(*) as total, sum(amount) as amount')
                 ->groupBy('currency', 'status')
                 ->get();
@@ -50,7 +50,7 @@ class DashboardController extends Controller
 
             // Total belum dibayar per mata uang (tidak boleh dijumlah lintas mata uang).
             $stats['unpaid'] = $invoices
-                ->filter(fn ($row) => $row->status === InvoiceStatus::Unpaid)
+                ->filter(fn ($row) => in_array($row->status, [InvoiceStatus::Sent, InvoiceStatus::Unpaid], true))
                 ->map(fn ($row) => Money::of((int) $row->amount, $row->currency)->format())
                 ->values()
                 ->all();

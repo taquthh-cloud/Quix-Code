@@ -101,7 +101,7 @@ class Invoice extends Model
     /** Terlambat dihitung, tidak disimpan. */
     public function isOverdue(): bool
     {
-        return $this->status === InvoiceStatus::Unpaid
+        return in_array($this->status, [InvoiceStatus::Sent, InvoiceStatus::Unpaid], true)
             && $this->due_date !== null
             && $this->due_date->isPast();
     }
@@ -111,7 +111,8 @@ class Invoice extends Model
     {
         return match ($user->role) {
             UserRole::Admin => $query,
-            UserRole::Client => $query->whereIn($query->qualifyColumn('project_id'), Project::visibleIds($user)),
+            UserRole::Client => $query->whereIn($query->qualifyColumn('project_id'), Project::visibleIds($user))
+                ->where($query->qualifyColumn('status'), '!=', InvoiceStatus::Draft->value),
             UserRole::Staff => $query->whereRaw('0 = 1'),
         };
     }

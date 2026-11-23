@@ -35,7 +35,7 @@ class Project extends Model
 
     /** status & progress_percent sengaja tidak fillable: diubah lewat method/aksi terotorisasi. */
     protected $fillable = [
-        'client_id', 'title', 'description', 'github_repo', 'webhook_secret',
+        'client_id', 'title', 'description', 'github_repo', 'webhook_secret', 'lead_source',
         'currency', 'budget_reference', 'final_price',
     ];
 
