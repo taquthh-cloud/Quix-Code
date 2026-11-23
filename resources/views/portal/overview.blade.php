@@ -21,9 +21,14 @@
                     <td><x-badge-status :status="$project->status" /></td>
                     <td><x-progress-bar :value="$project->progress_percent" /></td>
                     <td class="text-end">
-                        <flux:button size="sm" :href="route('portal.projects.negotiation', $project->id)" wire:navigate>
-                            {{ __('portal.quotation_chat') }}
-                        </flux:button>
+                        <div class="flex flex-wrap justify-end gap-2">
+                            <flux:button size="sm" variant="ghost" :href="route('portal.projects.show', $project->id)" wire:navigate>
+                                {{ __('portal.project_details') }}
+                            </flux:button>
+                            <flux:button size="sm" :href="route('portal.projects.negotiation', $project->id)" wire:navigate>
+                                {{ __('portal.quotation_chat') }}
+                            </flux:button>
+                        </div>
                     </td>
                 </tr>
             @endforeach

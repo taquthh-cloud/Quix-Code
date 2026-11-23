@@ -8,6 +8,7 @@ use App\Livewire\Admin\Projects\Form as ProjectForm;
 use App\Livewire\Admin\Projects\Negotiation as ProjectNegotiation;
 use App\Livewire\Admin\Quotations\Builder as QuotationBuilder;
 use App\Livewire\Portal\Negotiation as PortalNegotiation;
+use App\Livewire\Portal\ProjectOverview as PortalProjectOverview;
 use App\Livewire\Admin\Projects\Index as ProjectIndex;
 use App\Livewire\Admin\Projects\Show as ProjectShow;
 use App\Models\Project;
@@ -55,6 +56,7 @@ Route::middleware(['auth', 'verified', 'can:access-portal'])
     ->name('portal.')
     ->group(function () {
         Route::get('/', OverviewController::class)->name('overview');
+        Route::livewire('projects/{project}', PortalProjectOverview::class)->name('projects.show');
         Route::livewire('projects/{project}/negotiation', PortalNegotiation::class)->name('projects.negotiation');
     });
 
