@@ -76,7 +76,7 @@ class Quotation extends Model
     /** Uang muka yang ditagihkan saat deal. */
     public function dpMoney(): Money
     {
-        return $this->totalMoney()->percent($this->dp_percent);
+        return $this->totalMoney()->percent($this->dp_percent ?? 50);
     }
 
     /** Kedaluwarsa setelah akhir hari valid_until. */
