@@ -2,6 +2,10 @@
 use App\Http\Controllers\LocaleController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Livewire\Admin\Projects\Form as ProjectForm;
+use App\Livewire\Admin\Projects\Index as ProjectIndex;
+use App\Livewire\Admin\Projects\Show as ProjectShow;
+use App\Models\Project;
 
 Route::view('/', 'welcome')->name('home');
 
@@ -24,6 +28,14 @@ Route::middleware(['auth', 'verified', 'can:access-internal'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', DashboardController::class)->name('dashboard');
+
+        // Project Control Room (Tahap 2b). Otorisasi detail ada di komponen Livewire (Policy).
+        Route::livewire('projects', ProjectIndex::class)->name('projects.index');
+        Route::livewire('projects/create', ProjectForm::class)
+            ->middleware('can:create,'.Project::class)
+            ->name('projects.create');
+        Route::livewire('projects/{project}', ProjectShow::class)->name('projects.show');
+        Route::livewire('projects/{project}/edit', ProjectForm::class)->name('projects.edit');
     });
 
 // Portal klien: hanya klien.

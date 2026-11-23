@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Currency;
+use App\Enums\MilestoneStatus;
 use App\Enums\ProjectStatus;
 use App\Enums\UserRole;
 use App\Support\Money;
@@ -166,6 +167,32 @@ class Project extends Model
     {
         $this->status = $this->status->transitionTo($to);
         $this->save();
+
+        return $this;
+    }
+
+    /** Mata uang dikunci begitu harga disepakati (status deal ke atas), Bagian 7 blueprint. */
+    public function isCurrencyLocked(): bool
+    {
+        return ! in_array($this->status, [ProjectStatus::Lead, ProjectStatus::Quoted, ProjectStatus::Negotiating], true);
+    }
+
+    /** Tandai selesai semua milestone yang ambang progresnya sudah tercapai. Mengembalikan jumlah yang diubah. */
+    public function completeReachedMilestones(): int
+    {
+        return ProjectMilestone::query()
+            ->where('project_id', $this->getKey())
+            ->where('status', '!=', MilestoneStatus::Done->value)
+            ->where('target_progress', '<=', (int) $this->progress_percent)
+            ->update(['status' => MilestoneStatus::Done->value, 'completed_at' => now()]);
+    }
+
+    /** Set progres manual (0-100, dibatasi) lalu selesaikan milestone yang ambangnya tercapai. */
+    public function setProgress(int $percent): static
+    {
+        $this->progress_percent = max(0, min(100, $percent));
+        $this->save();
+        $this->completeReachedMilestones();
 
         return $this;
     }
