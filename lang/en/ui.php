@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'close' => 'Close',
+    'loading' => 'Loading…',
+    'language' => 'Language',
+    'progress' => 'Progress',
+    'empty_title' => 'No data yet',
+    'empty_description' => 'Data will show up here once something is added.',
+
+    'demo' => [
+        'title' => 'Design System',
+        'subtitle' => 'Sample page for the base components (local only).',
+        'badges' => 'Status badges',
+        'progress' => 'Progress bar',
+        'small' => 'Small',
+        'medium' => 'Medium',
+        'large' => 'Large',
+        'project' => 'Project',
+        'status' => 'Status',
+        'modal' => 'Modal',
+        'open_modal' => 'Open modal',
+        'modal_body' => 'This is sample modal content. Press Esc or click outside to close.',
+    ],
+];
