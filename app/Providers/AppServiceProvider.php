@@ -7,10 +7,12 @@ use App\Models\OrderChat;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\ProjectMilestone;
+use App\Models\ProjectFile;
 use App\Models\Quotation;
 use App\Models\RevisionTicket;
 use App\Models\User;
 use App\Policies\ChatPolicy;
+use App\Policies\FilePolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\MilestonePolicy;
 use App\Policies\PaymentPolicy;
@@ -19,6 +21,7 @@ use App\Policies\QuotationPolicy;
 use App\Policies\TicketPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
@@ -49,6 +52,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(RevisionTicket::class, TicketPolicy::class);
         Gate::policy(OrderChat::class, ChatPolicy::class);
         Gate::policy(ProjectMilestone::class, MilestonePolicy::class);
+        Gate::policy(ProjectFile::class, FilePolicy::class);
 
         Gate::define('admin', fn (User $user) => $user->isAdmin());
         Gate::define('access-internal', fn (User $user) => $user->isAdmin() || $user->isStaff());
@@ -68,6 +72,7 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
+        Model::shouldBeStrict(! app()->isProduction());
 
         DB::prohibitDestructiveCommands(
             app()->isProduction(),

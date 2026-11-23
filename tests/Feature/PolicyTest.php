@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Gate;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->admin = User::factory()->admin()->create();
+    $this->admin = User::factory()->admin()->withTwoFactor()->create();
     $this->staff = User::factory()->staff()->create();       // ditugaskan di proyek A
     $this->otherStaff = User::factory()->staff()->create();  // tidak ditugaskan
     $this->clientA = User::factory()->client()->create();
@@ -193,7 +193,7 @@ it('arsip handover tidak bisa diunduh sebelum invoice final lunas', function () 
     $final->forceFill(['status' => InvoiceStatus::AwaitingVerification])->save();
     expect($this->clientA->can('downloadHandover', $this->projectA))->toBeFalse();
 
-    $final->forceFill(['status' => InvoiceStatus::Paid])->save();
+    $final->forceFill(['status' => InvoiceStatus::Paid, 'paid_amount' => $final->amount])->save();
     expect($this->clientA->can('downloadHandover', $this->projectA))->toBeTrue()
         ->and($this->clientB->can('downloadHandover', $this->projectA))->toBeFalse()
         ->and($this->staff->can('downloadHandover', $this->projectA))->toBeFalse();

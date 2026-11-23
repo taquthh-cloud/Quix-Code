@@ -8,6 +8,8 @@ return [
         'price_changed' => 'Harga diubah',
         'staff_assigned' => 'Staf ditugaskan',
         'staff_unassigned' => 'Penugasan staf dicabut',
+        'user_deactivated' => 'Pengguna dinonaktifkan',
+        'user_reactivated' => 'Pengguna diaktifkan kembali',
         'invoice_created' => 'Invoice dibuat',
         'invoice_paid' => 'Invoice lunas',
         'invoice_cancelled' => 'Invoice dibatalkan',

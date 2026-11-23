@@ -40,7 +40,13 @@ class InvoicePolicy
 
     public function delete(User $user, Invoice $invoice): bool
     {
-        return $user->isAdmin();
+        return false;
+    }
+
+    public function void(User $user, Invoice $invoice): bool
+    {
+        return $user->isAdmin()
+            && ! in_array($invoice->status, [\App\Enums\InvoiceStatus::Paid, \App\Enums\InvoiceStatus::Cancelled, \App\Enums\InvoiceStatus::Void], true);
     }
 
     /** Klien pemilik boleh mengunggah bukti bayar hanya selama invoice belum dibayar. */

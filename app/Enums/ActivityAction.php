@@ -11,6 +11,8 @@ enum ActivityAction: string
     case PriceChanged = 'price_changed';
     case StaffAssigned = 'staff_assigned';
     case StaffUnassigned = 'staff_unassigned';
+    case UserDeactivated = 'user_deactivated';
+    case UserReactivated = 'user_reactivated';
     case InvoiceCreated = 'invoice_created';
     case InvoicePaid = 'invoice_paid';
     case InvoiceCancelled = 'invoice_cancelled';

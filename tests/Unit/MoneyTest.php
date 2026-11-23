@@ -51,9 +51,9 @@ it('menolak operasi lintas mata uang', function () {
 it('menghitung jam x rate dan persen dengan pembulatan half up', function () {
     $rate = Money::of(150000, Currency::IDR);
 
-    expect($rate->multiply(2.5)->amount)->toBe(375000)
+    expect($rate->multiply('2.5')->amount)->toBe(375000)
         ->and(Money::of(1000001, Currency::IDR)->percent(20)->amount)->toBe(200000)
-        ->and(Money::of(1, Currency::USD)->multiply(0.5)->amount)->toBe(1);
+        ->and(Money::of(1, Currency::USD)->multiply('0.5')->amount)->toBe(1);
 });
 
 it('mengembalikan string satuan utama', function () {

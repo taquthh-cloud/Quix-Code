@@ -84,6 +84,7 @@ return [
 
         'status_card' => 'Status proyek',
         'move_to' => 'Pindah ke status',
+        'status_reason' => 'Alasan (wajib untuk menunda atau membatalkan)',
         'no_transitions' => 'Tidak ada perpindahan status yang tersedia.',
         'confirm_cancel' => 'Batalkan proyek ini? Tindakan ini tidak bisa dibalik.',
 

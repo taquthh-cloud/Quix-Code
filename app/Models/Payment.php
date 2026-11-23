@@ -20,6 +20,7 @@ class Payment extends Model
         return [
             'amount' => 'integer',
             'status' => PaymentStatus::class,
+            'paid_at' => 'datetime',
             'verified_at' => 'datetime',
         ];
     }

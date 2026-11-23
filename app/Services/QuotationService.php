@@ -296,7 +296,7 @@ class QuotationService
     private function move(Project $project, ProjectStatus $to, User $actor): void
     {
         $from = $project->status;
-        $project->transitionTo($to);
+        $project->transitionTo($to, $actor);
 
         ActivityLogger::changed(ActivityAction::StatusChanged, $project, $from, $to, $actor);
     }

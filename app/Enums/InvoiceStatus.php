@@ -12,6 +12,7 @@ enum InvoiceStatus: string
     case AwaitingVerification = 'awaiting_verification'; // bukti sudah diunggah, menunggu admin
     case Paid = 'paid';
     case Cancelled = 'cancelled';
+    case Void = 'void';
 
     public function label(): string
     {
@@ -35,7 +36,7 @@ enum InvoiceStatus: string
             self::Unpaid => 'amber',
             self::AwaitingVerification => 'sky',
             self::Paid => 'emerald',
-            self::Cancelled => 'zinc',
+            self::Cancelled, self::Void => 'zinc',
         };
     }
 }

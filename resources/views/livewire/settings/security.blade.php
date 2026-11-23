@@ -37,6 +37,19 @@
             </div>
         </form>
 
+        <form method="POST" wire:submit="logoutOtherDevices" class="mt-8 space-y-4 border-t border-slate-200 pt-6 dark:border-slate-800">
+            <flux:heading>{{ __('ui.security.heading') }}</flux:heading>
+            <flux:input
+                wire:model="current_password"
+                :label="__('Current password')"
+                type="password"
+                required
+                autocomplete="current-password"
+            />
+            <flux:error name="current_password" />
+            <flux:button type="submit">{{ __('ui.security.logout_other_devices') }}</flux:button>
+        </form>
+
         @if ($canManageTwoFactor)
             <section class="mt-12">
                 <flux:heading>{{ __('Two-factor authentication') }}</flux:heading>
@@ -49,14 +62,15 @@
                                 {{ __('You will be prompted for a secure, random pin during login, which you can retrieve from the TOTP-supported application on your phone.') }}
                             </flux:text>
 
-                            <div class="flex justify-start">
-                                <flux:button
-                                    variant="danger"
-                                    wire:click="disable"
-                                >
-                                    {{ __('Disable 2FA') }}
-                                </flux:button>
-                            </div>
+                            @if (auth()->user()->isAdmin())
+                                <flux:text>{{ __('auth.admin_two_factor_mandatory') }}</flux:text>
+                            @else
+                                <div class="flex justify-start">
+                                    <flux:button variant="danger" wire:click="disable">
+                                        {{ __('Disable 2FA') }}
+                                    </flux:button>
+                                </div>
+                            @endif
 
                             <livewire:settings.two-factor.recovery-codes :$requiresConfirmation />
                         </div>

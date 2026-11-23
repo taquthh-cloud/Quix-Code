@@ -8,6 +8,8 @@ return [
         'price_changed' => 'Price changed',
         'staff_assigned' => 'Staff assigned',
         'staff_unassigned' => 'Staff unassigned',
+        'user_deactivated' => 'User deactivated',
+        'user_reactivated' => 'User reactivated',
         'invoice_created' => 'Invoice created',
         'invoice_paid' => 'Invoice paid',
         'invoice_cancelled' => 'Invoice cancelled',

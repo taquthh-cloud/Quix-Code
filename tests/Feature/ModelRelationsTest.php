@@ -35,7 +35,7 @@ it('menghubungkan proyek dengan klien, staf, milestone, dan invoice', function (
 });
 
 it('scope visibleTo membatasi proyek per peran', function () {
-    $admin = User::factory()->admin()->create();
+    $admin = User::factory()->admin()->withTwoFactor()->create();
     $staff = User::factory()->staff()->create();
     $clientA = User::factory()->client()->create();
     $clientB = User::factory()->client()->create();

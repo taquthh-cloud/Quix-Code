@@ -84,6 +84,7 @@ return [
 
         'status_card' => 'Project status',
         'move_to' => 'Move to status',
+        'status_reason' => 'Reason (required to pause or cancel)',
         'no_transitions' => 'No status changes available.',
         'confirm_cancel' => 'Cancel this project? This cannot be undone.',
 

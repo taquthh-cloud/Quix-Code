@@ -67,7 +67,7 @@ class Room extends Component
                 $fresh = Project::query()->lockForUpdate()->find($project->id);
 
                 if ($user->isClient() && $fresh?->status === ProjectStatus::Quoted) {
-                    $fresh->transitionTo(ProjectStatus::Negotiating);
+                    $fresh->transitionTo(ProjectStatus::Negotiating, $user);
                     ActivityLogger::changed(ActivityAction::StatusChanged, $fresh, ProjectStatus::Quoted, ProjectStatus::Negotiating, $user);
                 }
             });

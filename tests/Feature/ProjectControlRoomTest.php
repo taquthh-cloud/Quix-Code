@@ -10,6 +10,8 @@ use App\Livewire\Admin\Projects\Show;
 use App\Models\ActivityLog;
 use App\Models\Project;
 use App\Models\ProjectMilestone;
+use App\Models\Quotation;
+use App\Models\QuotationItem;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +19,7 @@ use Livewire\Livewire;
 
 beforeEach(function () {
     app()->setLocale('id');
-    $this->admin = User::factory()->admin()->create();
+    $this->admin = User::factory()->admin()->withTwoFactor()->create();
     $this->staff = User::factory()->staff()->create();
     $this->client = User::factory()->client()->create();
 });
@@ -266,6 +268,8 @@ it('aksi admin ditolak untuk staf walau dipanggil langsung', function () {
 
 it('admin memindah status sesuai urutan dan tercatat; lompat status ditolak', function () {
     $project = Project::factory()->for($this->client, 'client')->create();
+    $quotation = Quotation::factory()->sent()->for($project)->create();
+    QuotationItem::factory()->for($quotation)->create();
 
     $this->actingAs($this->admin);
     $component = Livewire::test(Show::class, ['project' => $project->id]);

@@ -41,6 +41,8 @@ class Show extends Component
     /** String agar input kosong dari browser tidak menyebabkan TypeError; divalidasi lalu di-cast. */
     public string $progress = '0';
 
+    public string $statusReason = '';
+
     public string $staffId = '';
 
     public string $taskRole = '';
@@ -85,16 +87,23 @@ class Show extends Component
 
         $target = ProjectStatus::tryFrom($to);
 
-        if ($target === null || ! $project->status->canTransitionTo($target)) {
+        $isResume = $project->status === ProjectStatus::OnHold
+            && $project->on_hold_from === $target?->value;
+
+        if ($target === null || (! $isResume && ! $project->status->canTransitionTo($target))) {
             Flux::toast(variant: 'danger', text: __('projects.errors.invalid_transition'));
 
             return;
         }
 
+        if (in_array($target, [ProjectStatus::OnHold, ProjectStatus::Cancelled], true)) {
+            $this->validate(['statusReason' => ['required', 'string', 'max:1000']]);
+        }
+
         try {
             DB::transaction(function () use ($project, $target) {
                 $old = $project->status;
-                $project->transitionTo($target);
+                $project->transitionTo($target, auth()->user(), $this->statusReason ?: null);
 
                 if ($target === ProjectStatus::Closed) {
                     $project->forceFill(['completed_at' => now()])->save();
@@ -109,6 +118,7 @@ class Show extends Component
         }
 
         $this->refreshProject();
+        $this->reset('statusReason');
         Flux::toast(variant: 'success', text: __('projects.toast.status_changed'));
     }
 
@@ -416,7 +426,11 @@ class Show extends Component
         return view('livewire.admin.projects.show', [
             'project' => $project,
             'movable' => $movable,
-            'transitions' => $isAdmin ? $project->status->allowedTransitions() : [],
+            'transitions' => $isAdmin
+                ? ($project->status === ProjectStatus::OnHold && $project->on_hold_from
+                    ? [ProjectStatus::from($project->on_hold_from), ProjectStatus::Cancelled]
+                    : $project->status->allowedTransitions())
+                : [],
             'availableStaff' => $isAdmin
                 ? User::query()->where('role', UserRole::Staff->value)
                     ->whereNotIn('id', $project->assignments->pluck('staff_id'))

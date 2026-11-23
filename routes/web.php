@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\ProjectFileController;
+use App\Http\Middleware\RequireAdminTwoFactor;
 use App\Http\Controllers\Portal\OverviewController;
 use App\Livewire\Admin\Leads\Index as LeadsIndex;
 use App\Livewire\Admin\Projects\Form as ProjectForm;
@@ -18,6 +20,9 @@ Route::view('/', 'welcome')->name('home');
 
 // Pilihan bahasa (ID/EN), disimpan di cookie dan users.locale.
 Route::post('locale/{locale}', LocaleController::class)->name('locale.update');
+Route::get('files/{file}', ProjectFileController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('files.download');
 
 /*
  * Pintu masuk tunggal setelah login. Semua alur Fortify (login, 2FA, passkey,
@@ -29,7 +34,7 @@ Route::middleware(['auth', 'verified'])->get('dashboard', function () {
 })->name('dashboard');
 
 // Area kerja internal: admin & staf.
-Route::middleware(['auth', 'verified', 'can:access-internal'])
+Route::middleware(['auth', 'verified', 'can:access-internal', RequireAdminTwoFactor::class])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {

@@ -5,13 +5,13 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 
 dataset('roles', [
-    'admin' => ['admin', 'admin.dashboard'],
     'staff' => ['staff', 'admin.dashboard'],
     'client' => ['client', 'portal.overview'],
 ]);
 
 test('login lalu /dashboard mengalihkan sesuai peran', function (string $state, string $route) {
-    $user = User::factory()->{$state}()->create();
+    $factory = User::factory()->{$state}();
+    $user = ($state === 'admin' ? $factory->withTwoFactor() : $factory)->create();
 
     $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
         ->assertSessionHasNoErrors();
@@ -38,12 +38,36 @@ test('tamu diarahkan ke login dari area admin dan portal', function () {
 });
 
 test('email belum terverifikasi ditolak dari semua dasbor', function (string $state) {
-    $user = User::factory()->{$state}()->unverified()->create();
+    $factory = User::factory()->{$state}()->unverified();
+    $user = ($state === 'admin' ? $factory->withTwoFactor() : $factory)->create();
 
     $this->actingAs($user)->get(route('dashboard'))->assertRedirect(route('verification.notice'));
     $this->actingAs($user)->get(route('admin.dashboard'))->assertRedirect(route('verification.notice'));
     $this->actingAs($user)->get(route('portal.overview'))->assertRedirect(route('verification.notice'));
 })->with(['admin', 'staff', 'client']);
+
+test('admin without confirmed two factor is redirected to security setup', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.dashboard'))
+        ->assertRedirect(route('security.edit'));
+});
+
+test('admin with confirmed two factor can access the internal workspace', function () {
+    $this->actingAs(User::factory()->admin()->withTwoFactor()->create())
+        ->get(route('admin.dashboard'))
+        ->assertOk();
+});
+
+test('inactive accounts are logged out before accessing the portal', function () {
+    $user = User::factory()->client()->create(['is_active' => false]);
+
+    $this->actingAs($user)
+        ->get(route('portal.overview'))
+        ->assertRedirect(route('login'))
+        ->assertSessionHasErrors('email');
+
+    $this->assertGuest();
+});
 
 test('last_login_at dicatat saat login', function () {
     $user = User::factory()->client()->create();
@@ -60,7 +84,7 @@ test('registrasi publik selalu membuat klien', function () {
         'email' => 'calon@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
-        'role' => 'admin', // upaya eskalasi harus diabaikan
+        'role' => 'admin',
     ]);
 
     expect(User::where('email', 'calon@example.com')->first()->isClient())->toBeTrue();

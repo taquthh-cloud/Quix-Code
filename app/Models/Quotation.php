@@ -35,10 +35,18 @@ class Quotation extends Model
             'margin_percent' => 'decimal:2',
             'dp_percent' => 'integer',
             'total' => 'integer',
+            'discount_amount' => 'integer',
+            'margin_bp' => 'integer',
+            'tax_bp' => 'integer',
+            'tax_amount' => 'integer',
             'status' => QuotationStatus::class,
             'valid_until' => 'date',
             'sent_at' => 'datetime',
             'accepted_at' => 'datetime',
+            'discount_amount' => 'integer',
+            'margin_bp' => 'integer',
+            'tax_bp' => 'integer',
+            'tax_amount' => 'integer',
         ];
     }
 

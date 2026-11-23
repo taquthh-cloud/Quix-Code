@@ -20,7 +20,7 @@ use Livewire\Livewire;
 
 beforeEach(function () {
     app()->setLocale('id');
-    $this->admin = User::factory()->admin()->create();
+    $this->admin = User::factory()->admin()->withTwoFactor()->create();
     $this->staff = User::factory()->staff()->create();
     $this->client = User::factory()->client()->create();
 
@@ -218,7 +218,7 @@ it('klien menyetujui: deal, harga dan mata uang terkunci, Invoice DP terbit, men
         ->and($invoice->status)->toBe(InvoiceStatus::Unpaid)
         ->and($invoice->amount)->toBe(13_200_000)
         ->and($invoice->currency)->toBe(Currency::IDR)
-        ->and($invoice->invoice_number)->toBe('INV-'.now()->year.'-0001')
+        ->and($invoice->invoice_number)->toBe('QC/'.now()->year.'/0001')
         ->and($invoice->due_date)->not->toBeNull();
 
     $statusLogs = ActivityLog::where('action', ActivityAction::StatusChanged->value)->orderBy('id')->get();
@@ -269,7 +269,7 @@ it('nomor invoice berurutan antar proyek', function () {
     }
 
     expect(Invoice::orderBy('invoice_number')->pluck('invoice_number')->all())
-        ->toBe(['INV-'.now()->year.'-0001', 'INV-'.now()->year.'-0002']);
+        ->toBe(['QC/'.now()->year.'/0001', 'QC/'.now()->year.'/0002']);
 });
 
 it('persetujuan tidak bisa diulang dan tidak menggandakan invoice', function () {

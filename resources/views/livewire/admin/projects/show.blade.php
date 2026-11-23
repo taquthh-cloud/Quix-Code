@@ -212,6 +212,11 @@
                         <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('projects.show.no_transitions') }}</p>
                     @else
                         <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">{{ __('projects.show.move_to') }}</p>
+                        <flux:field class="mb-4">
+                            <flux:label>{{ __('projects.show.status_reason') }}</flux:label>
+                            <flux:textarea wire:model="statusReason" rows="2" />
+                            <flux:error name="statusReason" />
+                        </flux:field>
                         <div class="flex flex-wrap gap-2">
                             @foreach ($transitions as $next)
                                 @if ($next === $cancelled)

@@ -11,7 +11,7 @@ use Livewire\Livewire;
 
 beforeEach(function () {
     app()->setLocale('id');
-    $this->admin = User::factory()->admin()->create();
+    $this->admin = User::factory()->admin()->withTwoFactor()->create();
     $this->staff = User::factory()->staff()->create();
     $this->client = User::factory()->client()->create();
     $this->project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Quoted]);

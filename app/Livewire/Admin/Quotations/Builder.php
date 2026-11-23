@@ -326,13 +326,21 @@ class Builder extends Component
             'rate' => $this->tryMinor((string) ($item['rate'] ?? ''), $currency),
         ], array_values($this->items));
 
-        $margin = preg_match('/^\d{1,3}(\.\d{1,2})?$/', trim($this->margin_percent)) ? min(100, (float) $this->margin_percent) : 0;
+        $marginInput = trim($this->margin_percent);
+        $margin = '0';
+
+        if (preg_match('/^\d{1,3}(\.\d{1,2})?$/', $marginInput) === 1) {
+            [$whole, $fraction] = array_pad(explode('.', $marginInput, 2), 2, '');
+            $margin = (int) $whole > 100 || ((int) $whole === 100 && preg_match('/[1-9]/', $fraction) === 1)
+                ? '100'
+                : $marginInput;
+        }
 
         $calc = QuotationCalculator::calculate(
             $currency,
             $lines,
             $this->tryMinor($this->operational_cost, $currency),
-            (string) $margin,
+            $margin,
         );
 
         $dp = in_array((int) $this->dp_percent, Quotation::DP_OPTIONS, true) ? (int) $this->dp_percent : 50;
