@@ -2,7 +2,12 @@
 use App\Http\Controllers\LocaleController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Portal\OverviewController;
+use App\Livewire\Admin\Leads\Index as LeadsIndex;
 use App\Livewire\Admin\Projects\Form as ProjectForm;
+use App\Livewire\Admin\Projects\Negotiation as ProjectNegotiation;
+use App\Livewire\Admin\Quotations\Builder as QuotationBuilder;
+use App\Livewire\Portal\Negotiation as PortalNegotiation;
 use App\Livewire\Admin\Projects\Index as ProjectIndex;
 use App\Livewire\Admin\Projects\Show as ProjectShow;
 use App\Models\Project;
@@ -36,6 +41,12 @@ Route::middleware(['auth', 'verified', 'can:access-internal'])
             ->name('projects.create');
         Route::livewire('projects/{project}', ProjectShow::class)->name('projects.show');
         Route::livewire('projects/{project}/edit', ProjectForm::class)->name('projects.edit');
+
+        // Quotation & Negosiasi (Tahap 3). Staf ditolak oleh QuotationPolicy/ChatPolicy di komponen.
+        Route::livewire('leads', LeadsIndex::class)->middleware('can:admin')->name('leads.index');
+        Route::livewire('projects/{project}/negotiation', ProjectNegotiation::class)->name('projects.negotiation');
+        Route::livewire('projects/{project}/quotations/create', QuotationBuilder::class)->name('quotations.create');
+        Route::livewire('projects/{project}/quotations/{quotation}', QuotationBuilder::class)->name('quotations.edit');
     });
 
 // Portal klien: hanya klien.
@@ -43,7 +54,8 @@ Route::middleware(['auth', 'verified', 'can:access-portal'])
     ->prefix('portal')
     ->name('portal.')
     ->group(function () {
-        Route::view('/', 'portal.overview')->name('overview');
+        Route::get('/', OverviewController::class)->name('overview');
+        Route::livewire('projects/{project}/negotiation', PortalNegotiation::class)->name('projects.negotiation');
     });
 
 // Halaman contoh komponen (hanya lokal/testing).

@@ -13,5 +13,8 @@ return [
         'invoice_cancelled' => 'Invoice dibatalkan',
         'payment_verified' => 'Pembayaran diverifikasi',
         'payment_rejected' => 'Pembayaran ditolak',
+        'quotation_sent' => 'Quotation dikirim',
+        'quotation_accepted' => 'Quotation disetujui klien',
+        'quotation_rejected' => 'Quotation ditolak',
     ],
 ];

@@ -141,7 +141,7 @@ class Form extends Component
             'final_price' => $final,
         ];
 
-        $saved = DB::transaction(function () use ($project, $attributes) {
+        $saved = DB::transaction(function () use ($project, $attributes, $currency, $budget, $final) {
             if ($project === null) {
                 $attributes['client_id'] = $this->resolveClientId();
                 $project = Project::create($attributes);

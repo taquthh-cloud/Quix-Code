@@ -16,6 +16,9 @@ enum ActivityAction: string
     case InvoiceCancelled = 'invoice_cancelled';
     case PaymentVerified = 'payment_verified';
     case PaymentRejected = 'payment_rejected';
+    case QuotationSent = 'quotation_sent';
+    case QuotationAccepted = 'quotation_accepted';
+    case QuotationRejected = 'quotation_rejected';
 
     public function label(): string
     {

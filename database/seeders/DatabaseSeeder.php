@@ -3,7 +3,9 @@
 namespace Database\Seeders;
 
 use App\Enums\MilestoneStatus;
+use App\Enums\ProjectStatus;
 use App\Models\Invoice;
+use App\Models\OrderChat;
 use App\Models\Project;
 use App\Models\ProjectMilestone;
 use App\Models\Quotation;
@@ -43,5 +45,17 @@ class DatabaseSeeder extends Seeder
         )->create();
 
         Invoice::factory()->paid()->for($project)->create(['invoice_number' => 'INV-DEMO-0001']);
+
+        // Prospek demo (Tahap 3): penawaran terkirim, siap disetujui klien dari portal.
+        $lead = Project::factory()->for($client, 'client')->create([
+            'title' => 'Portal Pemesanan Katering Demo',
+            'status' => ProjectStatus::Quoted,
+        ]);
+        $offer = Quotation::factory()->sent()->for($lead)->create();
+        QuotationItem::factory()->for($offer)->sequence(
+            ['title' => 'Katalog menu & pemesanan', 'hours' => 60, 'rate' => 200_000, 'amount' => 12_000_000, 'sort_order' => 0],
+            ['title' => 'Dasbor admin', 'hours' => 40, 'rate' => 200_000, 'amount' => 8_000_000, 'sort_order' => 1],
+        )->count(2)->create();
+        OrderChat::factory()->for($lead)->create(['sender_id' => $admin->id, 'message' => 'Halo, penawaran sudah kami kirim. Silakan dicek.']);
     }
 }

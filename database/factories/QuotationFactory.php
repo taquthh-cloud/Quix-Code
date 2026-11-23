@@ -22,6 +22,7 @@ class QuotationFactory extends Factory
             'subtotal' => 20_000_000,
             'operational_cost' => 2_000_000,
             'margin_percent' => 20,
+            'dp_percent' => 50,
             'total' => 26_400_000,
             'status' => QuotationStatus::Draft,
             'valid_until' => now()->addDays(14),

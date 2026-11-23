@@ -13,5 +13,8 @@ return [
         'invoice_cancelled' => 'Invoice cancelled',
         'payment_verified' => 'Payment verified',
         'payment_rejected' => 'Payment rejected',
+        'quotation_sent' => 'Quotation sent',
+        'quotation_accepted' => 'Quotation accepted by client',
+        'quotation_rejected' => 'Quotation rejected',
     ],
 ];

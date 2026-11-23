@@ -16,16 +16,19 @@
             <p class="text-sm text-slate-600 dark:text-slate-400">{{ $project->client?->name }}</p>
         </div>
 
-        @can('update', $project)
-            <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2">
+            @can('viewAny', [\App\Models\Quotation::class, $project])
+                <flux:button icon="chat-bubble-left-right" :href="route('admin.projects.negotiation', $project->id)" wire:navigate>{{ __('quotations.open') }}</flux:button>
+            @endcan
+            @can('update', $project)
                 <flux:button icon="pencil-square" :href="route('admin.projects.edit', $project->id)" wire:navigate>{{ __('ui.edit') }}</flux:button>
                 @can('delete', $project)
                     <flux:button variant="danger" icon="trash" wire:click="deleteProject" wire:confirm="{{ __('projects.show.confirm_delete_project') }}">
                         {{ __('projects.show.delete_project') }}
                     </flux:button>
                 @endcan
-            </div>
-        @endcan
+            @endcan
+        </div>
     </div>
 
     @if (session('status'))

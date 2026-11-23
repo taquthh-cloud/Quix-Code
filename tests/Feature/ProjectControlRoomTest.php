@@ -277,7 +277,8 @@ it('admin memindah status sesuai urutan dan tercatat; lompat status ditolak', fu
     expect($project->fresh()->status)->toBe(ProjectStatus::Quoted);
 
     $log = ActivityLog::where('action', ActivityAction::StatusChanged->value)->firstOrFail();
-    expect($log->properties)->toBe(['old' => 'lead', 'new' => 'quoted'])
+    // toEqual: kolom JSON MySQL tidak menjamin urutan kunci.
+    expect($log->properties)->toEqual(['old' => 'lead', 'new' => 'quoted'])
         ->and(ActivityLog::where('action', ActivityAction::StatusChanged->value)->count())->toBe(1);
 });
 
@@ -310,7 +311,7 @@ it('progres manual menyelesaikan milestone yang ambangnya tercapai dan tercatat'
         ->and($status[25])->toBe(MilestoneStatus::Done)
         ->and($status[50])->toBe(MilestoneStatus::Done)
         ->and($status[100])->toBe(MilestoneStatus::Pending)
-        ->and(ActivityLog::where('action', ActivityAction::ProgressChanged->value)->first()->properties)->toBe(['old' => 0, 'new' => 60]);
+        ->and(ActivityLog::where('action', ActivityAction::ProgressChanged->value)->first()->properties)->toEqual(['old' => 0, 'new' => 60]);
 });
 
 it('progres di luar 0-100 ditolak', function () {

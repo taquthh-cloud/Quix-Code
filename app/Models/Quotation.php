@@ -19,8 +19,11 @@ class Quotation extends Model
 
     protected $fillable = [
         'project_id', 'version', 'currency', 'subtotal', 'operational_cost',
-        'margin_percent', 'total', 'valid_until',
+        'margin_percent', 'dp_percent', 'total', 'valid_until',
     ];
+
+    /** Pilihan DP: 50-50 atau 30-40-30 (Bagian 5 blueprint). */
+    public const DP_OPTIONS = [30, 50];
 
     protected function casts(): array
     {
@@ -30,6 +33,7 @@ class Quotation extends Model
             'subtotal' => 'integer',
             'operational_cost' => 'integer',
             'margin_percent' => 'decimal:2',
+            'dp_percent' => 'integer',
             'total' => 'integer',
             'status' => QuotationStatus::class,
             'valid_until' => 'date',
@@ -51,6 +55,34 @@ class Quotation extends Model
     public function totalMoney(): Money
     {
         return Money::of($this->total, $this->currency);
+    }
+
+    public function subtotalMoney(): Money
+    {
+        return Money::of($this->subtotal, $this->currency);
+    }
+
+    public function operationalMoney(): Money
+    {
+        return Money::of($this->operational_cost, $this->currency);
+    }
+
+    /** Margin dalam nilai uang: selisih total dengan subtotal + operasional (tidak disimpan terpisah). */
+    public function marginMoney(): Money
+    {
+        return $this->totalMoney()->subtract($this->subtotalMoney())->subtract($this->operationalMoney());
+    }
+
+    /** Uang muka yang ditagihkan saat deal. */
+    public function dpMoney(): Money
+    {
+        return $this->totalMoney()->percent($this->dp_percent);
+    }
+
+    /** Kedaluwarsa setelah akhir hari valid_until. */
+    public function isExpired(): bool
+    {
+        return $this->valid_until !== null && $this->valid_until->copy()->endOfDay()->isPast();
     }
 
     /** Admin: semua; klien: penawaran proyeknya selain draf; staf: tidak ada. */

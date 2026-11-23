@@ -1,6 +1,32 @@
 <x-layouts::app :title="__('portal.title')">
-    <div class="flex flex-col gap-2">
-        <flux:heading size="xl">{{ __('portal.title') }}</flux:heading>
-        <flux:text>{{ __('portal.placeholder', ['name' => auth()->user()->name]) }}</flux:text>
+    <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-2">
+            <flux:heading size="xl">{{ __('portal.title') }}</flux:heading>
+            <flux:text>{{ __('portal.greeting', ['name' => auth()->user()->name]) }}</flux:text>
+        </div>
+
+        <x-table :empty="$projects->isEmpty()" :empty-title="__('portal.no_projects')" :empty-description="__('portal.no_projects_hint')">
+            <x-slot:head>
+                <tr>
+                    <th>{{ __('projects.columns.project') }}</th>
+                    <th>{{ __('projects.columns.status') }}</th>
+                    <th class="min-w-40">{{ __('projects.columns.progress') }}</th>
+                    <th></th>
+                </tr>
+            </x-slot:head>
+
+            @foreach ($projects as $project)
+                <tr wire:key="project-{{ $project->id }}">
+                    <td class="font-medium text-slate-900 dark:text-slate-50">{{ $project->title }}</td>
+                    <td><x-badge-status :status="$project->status" /></td>
+                    <td><x-progress-bar :value="$project->progress_percent" /></td>
+                    <td class="text-end">
+                        <flux:button size="sm" :href="route('portal.projects.negotiation', $project->id)" wire:navigate>
+                            {{ __('portal.quotation_chat') }}
+                        </flux:button>
+                    </td>
+                </tr>
+            @endforeach
+        </x-table>
     </div>
 </x-layouts::app>
