@@ -16,7 +16,7 @@ return [
 
     'team' => [
         'title' => 'Tim & Pengguna',
-        'subtitle' => 'Kelola akses staf dan klien. Pengguna baru menerima tautan untuk membuat kata sandi.',
+        'subtitle' => 'Kelola akses staf dan klien. Admin ditampilkan untuk transparansi dan tetap mengontrol seluruh proyek.',
         'create_title' => 'Tambah pengguna',
         'name' => 'Nama lengkap',
         'email' => 'Alamat email',
@@ -33,6 +33,7 @@ return [
         'person' => 'Pengguna',
         'state' => 'Akses',
         'actions' => 'Aksi',
+        'admin_control' => 'Kontrol penuh semua proyek',
         'active' => 'Aktif',
         'inactive' => 'Nonaktif',
         'activate' => 'Aktifkan',

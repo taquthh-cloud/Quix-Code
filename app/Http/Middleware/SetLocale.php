@@ -18,7 +18,8 @@ class SetLocale
 
     public function handle(Request $request, Closure $next): Response
     {
-        $locale = $request->user()?->locale;
+        // Middleware can run with an authenticated model loaded using a partial column selection.
+        $locale = $request->user()?->getRawOriginal('locale');
 
         if (! in_array($locale, self::SUPPORTED, true)) {
             $locale = $request->cookie('locale');

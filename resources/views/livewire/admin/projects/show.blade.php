@@ -154,8 +154,8 @@
 
                         <flux:select wire:model="ms_assignee" :label="__('projects.show.ms_assignee')" class="sm:col-span-2">
                             <flux:select.option value="">{{ __('projects.show.ms_unassigned') }}</flux:select.option>
-                            @foreach ($project->staff as $member)
-                                <flux:select.option :value="(string) $member->id">{{ $member->name }}</flux:select.option>
+                            @foreach ($milestoneAssignees as $member)
+                                <flux:select.option :value="(string) $member->id">{{ $member->name }} · {{ $member->role->label() }}</flux:select.option>
                             @endforeach
                         </flux:select>
                         <flux:error name="ms_assignee" class="sm:col-span-2" />
@@ -257,10 +257,18 @@
             @endif
 
             <x-card :title="__('projects.show.team_card')">
-                @if ($project->staff->isEmpty())
+                @if ($projectAdmins->isEmpty() && $project->staff->isEmpty())
                     <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('projects.show.no_staff') }}</p>
                 @else
                     <ul class="divide-y divide-slate-200 dark:divide-slate-800">
+                        @foreach ($projectAdmins as $member)
+                            <li wire:key="admin-{{ $member->id }}" class="flex items-center justify-between gap-2 py-2 text-sm">
+                                <div>
+                                    <span class="font-medium text-slate-900 dark:text-slate-50">{{ $member->name }}</span>
+                                    <span class="block text-xs text-slate-600 dark:text-slate-400">{{ $member->role->label() }}</span>
+                                </div>
+                            </li>
+                        @endforeach
                         @foreach ($project->staff as $member)
                             <li wire:key="staff-{{ $member->id }}" class="flex items-center justify-between gap-2 py-2 text-sm">
                                 <div>

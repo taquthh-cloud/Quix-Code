@@ -207,7 +207,7 @@ class Index extends Component
         $term = trim($this->search);
 
         $users = User::query()
-            ->whereIn('role', [UserRole::Staff->value, UserRole::Client->value])
+            ->whereIn('role', [UserRole::Admin->value, UserRole::Staff->value, UserRole::Client->value])
             ->when($term !== '', function ($query) use ($term): void {
                 $like = '%'.addcslashes($term, '\\%_').'%';
                 $query->where(fn ($search) => $search
@@ -220,6 +220,7 @@ class Index extends Component
         return view('livewire.admin.team.index', [
             'users' => $users,
             'roles' => [UserRole::Client, UserRole::Staff],
+            'filterRoles' => UserRole::cases(),
         ])->title(__('admin.team.title'));
     }
 }

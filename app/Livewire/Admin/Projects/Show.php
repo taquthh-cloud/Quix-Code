@@ -243,8 +243,23 @@ class Show extends Component
             'ms_title' => ['required', 'string', 'max:255'],
             'ms_target' => ['required', 'integer', 'between:0,100'],
             'ms_due' => ['nullable', 'date'],
-            // Penanggung jawab harus staf yang ditugaskan di proyek ini.
-            'ms_assignee' => ['nullable', Rule::exists('project_assignments', 'staff_id')->where('project_id', $project->id)],
+            // Penanggung jawab harus admin aktif atau staf yang ditugaskan di proyek ini.
+            'ms_assignee' => [
+                'nullable',
+                Rule::exists('users', 'id')
+                    ->whereNull('deleted_at')
+                    ->where(fn ($query) => $query->where(function ($query) use ($project) {
+                        $query->where(function ($query) {
+                            $query->where('role', UserRole::Admin->value)
+                                ->where('is_active', true);
+                        })->orWhere(function ($query) use ($project) {
+                            $query->where('role', UserRole::Staff->value)
+                                ->whereIn('id', DB::table('project_assignments')
+                                    ->select('staff_id')
+                                    ->where('project_id', $project->id));
+                        });
+                    })),
+            ],
         ], [], [
             'ms_title' => __('projects.fields.ms_title'),
             'ms_target' => __('projects.fields.ms_target'),
@@ -446,9 +461,19 @@ class Show extends Component
         $project->load([
             $user->isAdmin() ? 'client:id,name,email,whatsapp' : 'client:id,name',
             'assignments:id,project_id,staff_id,task_role',
-            'staff:id,name',
+            'staff:id,name,role',
             'milestones.assignee:id,name',
         ]);
+
+        $projectAdmins = User::query()
+            ->where('role', UserRole::Admin->value)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'role']);
+        $milestoneAssignees = $projectAdmins
+            ->concat($project->staff)
+            ->sortBy('name')
+            ->values();
 
         // Semua pemeriksaan hak geser memakai Policy yang sama, tanpa query tambahan per baris.
         $workable = $user->isAdmin() || $project->status->isWorkable();
@@ -469,6 +494,8 @@ class Show extends Component
 
         return view('livewire.admin.projects.show', [
             'project' => $project,
+            'projectAdmins' => $projectAdmins,
+            'milestoneAssignees' => $milestoneAssignees,
             'movable' => $movable,
             'transitions' => $isAdmin
                 ? ($project->status === ProjectStatus::OnHold && $project->on_hold_from

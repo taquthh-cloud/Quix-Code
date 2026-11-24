@@ -32,7 +32,7 @@
             <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :placeholder="__('admin.team.search')" :aria-label="__('admin.team.search')" />
             <flux:select wire:model.live="roleFilter" :aria-label="__('admin.team.role_filter')">
                 <flux:select.option value="">{{ __('admin.team.all_roles') }}</flux:select.option>
-                @foreach ($roles as $userRole)
+                @foreach ($filterRoles as $userRole)
                     <flux:select.option :value="$userRole->value">{{ $userRole->label() }}</flux:select.option>
                 @endforeach
             </flux:select>
@@ -56,13 +56,17 @@
                                 <span class="block text-xs text-slate-600 dark:text-slate-400">{{ $user->email }}</span>
                             </td>
                             <td class="px-3 py-3">
-                                <label class="sr-only" for="role-{{ $user->id }}">{{ __('admin.team.role_for', ['name' => $user->name]) }}</label>
-                                <select id="role-{{ $user->id }}" wire:change="changeRole({{ $user->id }}, $event.target.value)" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900">
-                                    @foreach ($roles as $userRole)
-                                        <option value="{{ $userRole->value }}" @selected($user->role === $userRole)>{{ $userRole->label() }}</option>
-                                    @endforeach
-                                </select>
-                                <flux:error :name="'roleChanges.'.$user->id" />
+                                @if ($user->isAdmin())
+                                    <span class="inline-flex rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-800 dark:bg-violet-500/15 dark:text-violet-300">{{ $user->role->label() }}</span>
+                                @else
+                                    <label class="sr-only" for="role-{{ $user->id }}">{{ __('admin.team.role_for', ['name' => $user->name]) }}</label>
+                                    <select id="role-{{ $user->id }}" wire:change="changeRole({{ $user->id }}, $event.target.value)" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900">
+                                        @foreach ($roles as $userRole)
+                                            <option value="{{ $userRole->value }}" @selected($user->role === $userRole)>{{ $userRole->label() }}</option>
+                                        @endforeach
+                                    </select>
+                                    <flux:error :name="'roleChanges.'.$user->id" />
+                                @endif
                             </td>
                             <td class="px-3 py-3">
                                 <span @class([
@@ -73,20 +77,24 @@
                             </td>
                             <td class="px-3 py-3">
                                 <div class="flex flex-wrap justify-end gap-2">
-                                    @if ($user->is_active)
-                                        <flux:button size="sm" variant="ghost" wire:click="resendInvite({{ $user->id }})">{{ __('admin.team.resend_invite') }}</flux:button>
-                                        @if ($user->isClient())
-                                            <div class="flex flex-wrap items-end justify-end gap-2">
-                                                <flux:input wire:model="previewReasons.{{ $user->id }}" :label="__('admin.team.preview_reason')" />
-                                                <flux:button size="sm" variant="ghost" wire:click="previewClient({{ $user->id }})">{{ __('admin.team.client_preview') }}</flux:button>
-                                            </div>
-                                            <flux:error :name="'previewReasons.'.$user->id" />
+                                    @if ($user->isAdmin())
+                                        <span class="self-center text-xs text-slate-600 dark:text-slate-400">{{ __('admin.team.admin_control') }}</span>
+                                    @else
+                                        @if ($user->is_active)
+                                            <flux:button size="sm" variant="ghost" wire:click="resendInvite({{ $user->id }})">{{ __('admin.team.resend_invite') }}</flux:button>
+                                            @if ($user->isClient())
+                                                <div class="flex flex-wrap items-end justify-end gap-2">
+                                                    <flux:input wire:model="previewReasons.{{ $user->id }}" :label="__('admin.team.preview_reason')" />
+                                                    <flux:button size="sm" variant="ghost" wire:click="previewClient({{ $user->id }})">{{ __('admin.team.client_preview') }}</flux:button>
+                                                </div>
+                                                <flux:error :name="'previewReasons.'.$user->id" />
+                                            @endif
                                         @endif
+                                        <flux:button size="sm" variant="ghost" wire:click="resetTwoFactor({{ $user->id }})" wire:confirm="{{ __('admin.team.confirm_two_factor_reset') }}">{{ __('admin.team.reset_two_factor') }}</flux:button>
+                                        <flux:button size="sm" :variant="$user->is_active ? 'danger' : 'primary'" wire:click="toggleActive({{ $user->id }})" wire:confirm="{{ $user->is_active ? __('admin.team.confirm_deactivate') : __('admin.team.confirm_activate') }}">
+                                            {{ $user->is_active ? __('admin.team.deactivate') : __('admin.team.activate') }}
+                                        </flux:button>
                                     @endif
-                                    <flux:button size="sm" variant="ghost" wire:click="resetTwoFactor({{ $user->id }})" wire:confirm="{{ __('admin.team.confirm_two_factor_reset') }}">{{ __('admin.team.reset_two_factor') }}</flux:button>
-                                    <flux:button size="sm" :variant="$user->is_active ? 'danger' : 'primary'" wire:click="toggleActive({{ $user->id }})" wire:confirm="{{ $user->is_active ? __('admin.team.confirm_deactivate') : __('admin.team.confirm_activate') }}">
-                                        {{ $user->is_active ? __('admin.team.deactivate') : __('admin.team.activate') }}
-                                    </flux:button>
                                 </div>
                             </td>
                         </tr>

@@ -16,7 +16,7 @@ return [
 
     'team' => [
         'title' => 'Team & Users',
-        'subtitle' => 'Manage staff and client access. New users receive a link to set their password.',
+        'subtitle' => 'Manage staff and client access. Admins are listed for visibility and retain control of every project.',
         'create_title' => 'Add a user',
         'name' => 'Full name',
         'email' => 'Email address',
@@ -33,6 +33,7 @@ return [
         'person' => 'User',
         'state' => 'Access',
         'actions' => 'Actions',
+        'admin_control' => 'Controls all projects',
         'active' => 'Active',
         'inactive' => 'Inactive',
         'activate' => 'Activate',

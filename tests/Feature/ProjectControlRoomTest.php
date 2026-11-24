@@ -438,7 +438,7 @@ it('milestone baru yang ambangnya sudah tercapai langsung selesai', function () 
     expect($project->milestones()->first()->status)->toBe(MilestoneStatus::Done);
 });
 
-it('validasi milestone: target 0-100 dan penanggung jawab harus staf proyek ini', function () {
+it('validasi milestone: target 0-100, staf harus dari proyek, dan admin dapat menjadi penanggung jawab', function () {
     $project = Project::factory()->active()->for($this->client, 'client')->create();
     $outsider = User::factory()->staff()->create();
 
@@ -452,6 +452,24 @@ it('validasi milestone: target 0-100 dan penanggung jawab harus staf proyek ini'
         ->call('saveMilestone')->assertHasErrors('ms_assignee');
 
     expect($project->milestones()->count())->toBe(0);
+});
+
+it('admin dapat ditugaskan sebagai penanggung jawab milestone dan tercantum dalam tim proyek', function () {
+    $project = Project::factory()->active()->for($this->client, 'client')->create();
+    $admin = $this->admin->forceFill(['name' => 'Project Admin']);
+    $admin->save();
+
+    $this->actingAs($admin);
+    Livewire::test(Show::class, ['project' => $project->id])
+        ->assertSee('Project Admin')
+        ->set('ms_title', 'Review administrasi')
+        ->set('ms_target', '50')
+        ->set('ms_assignee', (string) $admin->id)
+        ->call('saveMilestone')
+        ->assertHasNoErrors()
+        ->assertSee('Project Admin');
+
+    expect($project->milestones()->firstOrFail()->assigned_to)->toBe($admin->id);
 });
 
 it('milestone proyek lain tidak bisa diubah lewat id yang dipalsukan', function () {

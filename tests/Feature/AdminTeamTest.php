@@ -123,6 +123,22 @@ it('admin starts an audited read-only client preview with a required reason', fu
         ->assertRedirect(route('admin.team.index'));
 });
 
+it('team directory lists admins as read-only project controllers', function () {
+    $this->actingAs($this->admin);
+
+    Livewire::test(Index::class)
+        ->assertSee($this->admin->name)
+        ->assertSee($this->admin->email)
+        ->assertSee($this->admin->role->label())
+        ->assertSee(__('admin.team.admin_control'));
+
+    Livewire::test(Index::class)->call('changeRole', $this->admin->id, 'staff')->assertNotFound();
+    Livewire::test(Index::class)->call('toggleActive', $this->admin->id)->assertNotFound();
+
+    expect($this->admin->fresh()->role)->toBe(UserRole::Admin)
+        ->and($this->admin->fresh()->is_active)->toBeTrue();
+});
+
 it('only admins can open the team directory', function () {
     $staff = User::factory()->staff()->create();
     $client = User::factory()->client()->create();
