@@ -92,7 +92,7 @@ test('user can delete their account', function () {
         ->assertHasNoErrors()
         ->assertRedirect('/');
 
-    expect($user->fresh())->toBeNull();
+    expect(\App\Models\User::query()->find($user->id))->toBeNull();
     expect(auth()->check())->toBeFalse();
 });
 

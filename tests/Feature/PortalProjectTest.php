@@ -13,12 +13,11 @@ it('shows project progress and milestones only to the owning client', function (
         'title' => 'Portal Klien',
         'progress_percent' => 65,
     ]);
-    $project->milestones()->create([
+    $project->milestones()->make([
         'title' => 'Implementasi',
         'target_progress' => 60,
         'sort_order' => 0,
-        'status' => 'done',
-    ]);
+    ])->forceFill(['status' => 'done'])->save();
 
     $this->actingAs($client)
         ->get(route('portal.projects.show', $project->id))

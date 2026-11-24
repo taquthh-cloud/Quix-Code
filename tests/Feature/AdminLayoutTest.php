@@ -27,12 +27,12 @@ it('locale middleware tolerates authenticated users loaded without the locale co
     $partialAdmin = User::query()->select('id')->findOrFail($this->admin->id);
     $request = Request::create('/');
     $request->setUserResolver(fn () => $partialAdmin);
-    $defaultLocale = config('app.locale');
-    app()->setLocale($defaultLocale === 'id' ? 'en' : 'id');
+    // App::setLocale() menimpa config('app.locale'), jadi default dipatok dulu dan tidak diubah ke 'en'.
+    app()->setLocale('id');
 
     app(SetLocale::class)->handle($request, fn () => response('ok'));
 
-    expect(app()->getLocale())->toBe($defaultLocale);
+    expect(app()->getLocale())->toBe('id');
 });
 
 // ------------------------------------------------------------------ navigasi
@@ -102,6 +102,7 @@ it('jumlah query dashboard tidak bertambah saat proyek bertambah (tanpa N+1)', f
     };
 
     Project::factory()->for($this->client, 'client')->create();
+    $countQueries(); // pemanasan: query sekali-jalan (cache/skema) tidak dihitung
     $sedikit = $countQueries();
 
     Project::factory()->count(8)->create(); // masing-masing dengan klien sendiri

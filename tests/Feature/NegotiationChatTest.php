@@ -15,6 +15,8 @@ beforeEach(function () {
     $this->staff = User::factory()->staff()->create();
     $this->client = User::factory()->client()->create();
     $this->project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Quoted]);
+    $quotation = \App\Models\Quotation::factory()->sent()->for($this->project)->create();
+    \App\Models\QuotationItem::factory()->for($quotation)->create();
 });
 
 it('klien mengirim pesan: tersimpan apa adanya (dipangkas) dan proyek masuk negosiasi', function () {

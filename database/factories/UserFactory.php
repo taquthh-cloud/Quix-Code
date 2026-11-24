@@ -32,6 +32,11 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'locale' => 'id',
             'is_active' => true,
+            'role' => \App\Enums\UserRole::Client,
+            'is_available_for_projects' => true,
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
         ];
     }
 

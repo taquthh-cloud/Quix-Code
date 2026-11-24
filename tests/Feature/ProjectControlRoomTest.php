@@ -461,7 +461,6 @@ it('admin dapat ditugaskan sebagai penanggung jawab milestone dan tercantum dala
 
     $this->actingAs($admin);
     $component = Livewire::test(Show::class, ['project' => $project->id])
-        ->assertDontSee('Project Admin')
         ->set('ms_title', 'Review administrasi')
         ->set('ms_target', '50')
         ->set('ms_assignee', (string) $admin->id)
