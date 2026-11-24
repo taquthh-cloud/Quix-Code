@@ -243,15 +243,21 @@ class Show extends Component
             'ms_title' => ['required', 'string', 'max:255'],
             'ms_target' => ['required', 'integer', 'between:0,100'],
             'ms_due' => ['nullable', 'date'],
-            // Penanggung jawab harus admin aktif atau staf yang ditugaskan di proyek ini.
+            // Admin yang sedang jeda hanya boleh mempertahankan penugasan milestone yang sudah dimilikinya.
             'ms_assignee' => [
                 'nullable',
                 Rule::exists('users', 'id')
                     ->whereNull('deleted_at')
-                    ->where(fn ($query) => $query->where(function ($query) use ($project) {
-                        $query->where(function ($query) {
+                    ->where(fn ($query) => $query->where(function ($query) use ($project, $milestone) {
+                        $query->where(function ($query) use ($milestone) {
                             $query->where('role', UserRole::Admin->value)
-                                ->where('is_active', true);
+                                ->where('is_active', true)
+                                ->where(function ($availability) use ($milestone) {
+                                    $availability->where('is_available_for_projects', true);
+                                    if ($milestone?->assigned_to) {
+                                        $availability->orWhere('id', $milestone->assigned_to);
+                                    }
+                                });
                         })->orWhere(function ($query) use ($project) {
                             $query->where('role', UserRole::Staff->value)
                                 ->whereIn('id', DB::table('project_assignments')
@@ -465,12 +471,25 @@ class Show extends Component
             'milestones.assignee:id,name',
         ]);
 
+        $assignedAdminIds = $project->milestones->pluck('assigned_to')->filter()->unique()->values();
         $projectAdmins = User::query()
             ->where('role', UserRole::Admin->value)
-            ->where('is_active', true)
+            ->whereIn('id', $assignedAdminIds)
             ->orderBy('name')
             ->get(['id', 'name', 'role']);
-        $milestoneAssignees = $projectAdmins
+        $currentMilestoneAssigneeId = $this->editingMilestoneId
+            ? $project->milestones->firstWhere('id', $this->editingMilestoneId)?->assigned_to
+            : null;
+        $milestoneAssignees = User::query()
+            ->where('role', UserRole::Admin->value)
+            ->where('is_active', true)
+            ->where(function ($query) use ($currentMilestoneAssigneeId) {
+                $query->where('is_available_for_projects', true);
+                if ($currentMilestoneAssigneeId) {
+                    $query->orWhere('id', $currentMilestoneAssigneeId);
+                }
+            })
+            ->get(['id', 'name', 'role'])
             ->concat($project->staff)
             ->sortBy('name')
             ->values();

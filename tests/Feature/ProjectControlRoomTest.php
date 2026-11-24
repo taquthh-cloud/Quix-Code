@@ -460,8 +460,8 @@ it('admin dapat ditugaskan sebagai penanggung jawab milestone dan tercantum dala
     $admin->save();
 
     $this->actingAs($admin);
-    Livewire::test(Show::class, ['project' => $project->id])
-        ->assertSee('Project Admin')
+    $component = Livewire::test(Show::class, ['project' => $project->id])
+        ->assertDontSee('Project Admin')
         ->set('ms_title', 'Review administrasi')
         ->set('ms_target', '50')
         ->set('ms_assignee', (string) $admin->id)
@@ -469,7 +469,29 @@ it('admin dapat ditugaskan sebagai penanggung jawab milestone dan tercantum dala
         ->assertHasNoErrors()
         ->assertSee('Project Admin');
 
-    expect($project->milestones()->firstOrFail()->assigned_to)->toBe($admin->id);
+    $milestone = $project->milestones()->firstOrFail();
+    expect($milestone->assigned_to)->toBe($admin->id);
+
+    $admin->forceFill(['is_available_for_projects' => false])->save();
+    $component->call('editMilestone', $milestone->id)
+        ->call('saveMilestone')
+        ->assertHasNoErrors()
+        ->assertSee('Project Admin');
+});
+
+it('admin yang sedang jeda tidak dapat menerima penugasan milestone baru', function () {
+    $project = Project::factory()->active()->for($this->client, 'client')->create();
+    $this->admin->forceFill(['is_available_for_projects' => false])->save();
+
+    $this->actingAs($this->admin);
+    Livewire::test(Show::class, ['project' => $project->id])
+        ->set('ms_title', 'Review administrasi')
+        ->set('ms_target', '50')
+        ->set('ms_assignee', (string) $this->admin->id)
+        ->call('saveMilestone')
+        ->assertHasErrors('ms_assignee');
+
+    expect($project->milestones()->count())->toBe(0);
 });
 
 it('milestone proyek lain tidak bisa diubah lewat id yang dipalsukan', function () {

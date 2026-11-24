@@ -18,6 +18,7 @@ enum ActivityAction: string
     case SettingUpdated = 'setting_updated';
     case UserDeactivated = 'user_deactivated';
     case UserReactivated = 'user_reactivated';
+    case AdminProjectAvailabilityChanged = 'admin_project_availability_changed';
     case ProjectNoteCreated = 'project_note_created';
     case InvoiceCreated = 'invoice_created';
     case InvoiceSent = 'invoice_sent';

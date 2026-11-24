@@ -139,6 +139,24 @@ class Index extends Component
         Flux::toast(variant: 'success', text: __('admin.team.two_factor_reset'));
     }
 
+    public function toggleProjectAvailability(): void
+    {
+        $user = auth()->user();
+        abort_unless($user?->isAdmin(), 403);
+
+        $wasAvailable = $user->is_available_for_projects;
+        $user->forceFill(['is_available_for_projects' => ! $wasAvailable])->save();
+        ActivityLogger::changed(
+            ActivityAction::AdminProjectAvailabilityChanged,
+            $user,
+            $wasAvailable,
+            ! $wasAvailable,
+            $user,
+        );
+
+        Flux::toast(variant: 'success', text: __('admin.team.project_availability_changed'));
+    }
+
     public function toggleActive(int $userId): void
     {
         $this->authorize('admin');

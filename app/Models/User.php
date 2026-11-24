@@ -58,6 +58,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'preferred_currency' => Currency::class,
             'whatsapp_opt_in' => 'boolean',
             'is_active' => 'boolean',
+            'is_available_for_projects' => 'boolean',
             'last_login_at' => 'datetime',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',

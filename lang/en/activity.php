@@ -18,6 +18,7 @@ return [
         'milestone_status_changed' => 'Milestone status changed',
         'user_deactivated' => 'User deactivated',
         'user_reactivated' => 'User reactivated',
+        'admin_project_availability_changed' => 'Admin project availability changed',
         'project_note_created' => 'Project note added',
         'invoice_created' => 'Invoice created',
         'invoice_sent' => 'Invoice sent',

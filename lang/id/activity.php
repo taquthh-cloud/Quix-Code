@@ -18,6 +18,7 @@ return [
         'milestone_status_changed' => 'Status milestone berubah',
         'user_deactivated' => 'Pengguna dinonaktifkan',
         'user_reactivated' => 'Pengguna diaktifkan kembali',
+        'admin_project_availability_changed' => 'Ketersediaan admin untuk proyek diubah',
         'project_note_created' => 'Catatan proyek ditambahkan',
         'invoice_created' => 'Invoice dibuat',
         'invoice_sent' => 'Invoice dikirim',

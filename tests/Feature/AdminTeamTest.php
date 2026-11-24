@@ -123,20 +123,32 @@ it('admin starts an audited read-only client preview with a required reason', fu
         ->assertRedirect(route('admin.team.index'));
 });
 
-it('team directory lists admins as read-only project controllers', function () {
+it('admins can pause project assignments without deactivating their account', function () {
+    $otherAdmin = User::factory()->admin()->create();
     $this->actingAs($this->admin);
 
     Livewire::test(Index::class)
         ->assertSee($this->admin->name)
         ->assertSee($this->admin->email)
         ->assertSee($this->admin->role->label())
-        ->assertSee(__('admin.team.admin_control'));
+        ->assertSee(__('admin.team.set_unavailable_for_projects'))
+        ->assertSee(__('admin.team.admin_control'))
+        ->call('changeRole', $this->admin->id, 'staff')->assertNotFound();
 
-    Livewire::test(Index::class)->call('changeRole', $this->admin->id, 'staff')->assertNotFound();
     Livewire::test(Index::class)->call('toggleActive', $this->admin->id)->assertNotFound();
+    Livewire::test(Index::class)->call('toggleProjectAvailability');
 
     expect($this->admin->fresh()->role)->toBe(UserRole::Admin)
-        ->and($this->admin->fresh()->is_active)->toBeTrue();
+        ->and($this->admin->fresh()->is_active)->toBeTrue()
+        ->and($this->admin->fresh()->is_available_for_projects)->toBeFalse()
+        ->and(ActivityLog::where('subject_id', (string) $this->admin->id)
+            ->where('action', ActivityAction::AdminProjectAvailabilityChanged->value)
+            ->exists())->toBeTrue();
+
+    $this->actingAs($otherAdmin);
+    Livewire::test(Index::class)->call('toggleProjectAvailability');
+    expect($otherAdmin->fresh()->is_available_for_projects)->toBeFalse()
+        ->and($this->admin->fresh()->is_available_for_projects)->toBeFalse();
 });
 
 it('only admins can open the team directory', function () {

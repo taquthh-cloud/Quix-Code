@@ -69,16 +69,29 @@
                                 @endif
                             </td>
                             <td class="px-3 py-3">
-                                <span @class([
-                                    'inline-flex rounded-full px-2 py-1 text-xs font-medium',
-                                    'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300' => $user->is_active,
-                                    'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300' => ! $user->is_active,
-                                ])>{{ $user->is_active ? __('admin.team.active') : __('admin.team.inactive') }}</span>
+                                <div class="flex flex-col items-start gap-1.5">
+                                    <span @class([
+                                        'inline-flex rounded-full px-2 py-1 text-xs font-medium',
+                                        'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300' => $user->is_active,
+                                        'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300' => ! $user->is_active,
+                                    ])>{{ $user->is_active ? __('admin.team.active') : __('admin.team.inactive') }}</span>
+                                    @if ($user->isAdmin())
+                                        <span class="text-xs text-slate-600 dark:text-slate-400">
+                                            {{ $user->is_available_for_projects ? __('admin.team.available_for_projects') : __('admin.team.unavailable_for_projects') }}
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-3 py-3">
                                 <div class="flex flex-wrap justify-end gap-2">
                                     @if ($user->isAdmin())
-                                        <span class="self-center text-xs text-slate-600 dark:text-slate-400">{{ __('admin.team.admin_control') }}</span>
+                                        @if ((int) auth()->id() === $user->id)
+                                            <flux:button size="sm" variant="ghost" wire:click="toggleProjectAvailability">
+                                                {{ $user->is_available_for_projects ? __('admin.team.set_unavailable_for_projects') : __('admin.team.set_available_for_projects') }}
+                                            </flux:button>
+                                        @else
+                                            <span class="self-center text-xs text-slate-600 dark:text-slate-400">{{ __('admin.team.admin_control') }}</span>
+                                        @endif
                                     @else
                                         @if ($user->is_active)
                                             <flux:button size="sm" variant="ghost" wire:click="resendInvite({{ $user->id }})">{{ __('admin.team.resend_invite') }}</flux:button>
