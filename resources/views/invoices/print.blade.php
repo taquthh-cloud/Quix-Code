@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ __('projects.invoice.document_title', ['number' => $invoice->invoice_number]) }}</title>
+    <title>{{ __('projects.invoice.document_title', ['number' => $invoice->invoice_number], 'id') }} / {{ __('projects.invoice.document_title', ['number' => $invoice->invoice_number], 'en') }}</title>
     <style>
         :root { color-scheme: light; font-family: Arial, Helvetica, sans-serif; color: #14251f; }
         * { box-sizing: border-box; }
@@ -28,38 +28,38 @@
     </style>
 </head>
 <body>
-    <nav class="toolbar" aria-label="{{ __('projects.invoice.print_actions') }}">
-        <a href="{{ $backUrl }}">{{ __('ui.back') }}</a>
-        <button type="button" onclick="window.print()">{{ __('projects.invoice.save_pdf') }}</button>
+    <nav class="toolbar" aria-label="{{ __('projects.invoice.print_actions', [], 'id') }} / {{ __('projects.invoice.print_actions', [], 'en') }}">
+        <a href="{{ $backUrl }}">{{ __('ui.back', [], 'id') }} / {{ __('ui.back', [], 'en') }}</a>
+        <button type="button" onclick="window.print()">{{ __('projects.invoice.save_pdf', [], 'id') }} / {{ __('projects.invoice.save_pdf', [], 'en') }}</button>
     </nav>
     <main class="sheet">
         <header>
             <div>
                 <p>{{ $company['name'] }}</p>
                 @if ($company['address'])<p>{{ $company['address'] }}</p>@endif
-                @if ($company['npwp'])<p>{{ __('projects.invoice.company_npwp') }}: {{ $company['npwp'] }}</p>@endif
+                @if ($company['npwp'])<p>{{ __('projects.invoice.company_npwp', [], 'id') }} / {{ __('projects.invoice.company_npwp', [], 'en') }}: {{ $company['npwp'] }}</p>@endif
                 <h1>{{ __('projects.invoice.document_heading') }}</h1>
             </div>
             <div class="meta">
                 <strong>{{ $invoice->invoice_number }}</strong>
-                <p>{{ __('projects.invoice.issued_at') }}: {{ ($invoice->issued_at ?? $invoice->created_at)->translatedFormat('d M Y') }}</p>
+                <p>{{ __('projects.invoice.issued_at', [], 'id') }} / {{ __('projects.invoice.issued_at', [], 'en') }}: {{ ($invoice->issued_at ?? $invoice->created_at)->format('d/m/Y') }}</p>
                 @if ($invoice->due_date)
-                    <p>{{ __('projects.invoice.due_date') }}: {{ $invoice->due_date->translatedFormat('d M Y') }}</p>
+                    <p>{{ __('projects.invoice.due_date', [], 'id') }} / {{ __('projects.invoice.due_date', [], 'en') }}: {{ $invoice->due_date->format('d/m/Y') }}</p>
                 @endif
             </div>
         </header>
         <section class="client">
-            <strong>{{ __('projects.invoice.bill_to') }}</strong>
+            <strong>{{ __('projects.invoice.bill_to', [], 'id') }} / {{ __('projects.invoice.bill_to', [], 'en') }}</strong>
             <p>{{ $invoice->project->client?->name }}</p>
             @if ($invoice->project->client?->email)<p>{{ $invoice->project->client->email }}</p>@endif
-            <p>{{ __('projects.invoice.project') }}: {{ $invoice->project->title }}</p>
+            <p>{{ __('projects.invoice.project', [], 'id') }} / {{ __('projects.invoice.project', [], 'en') }}: {{ $invoice->project->title }}</p>
         </section>
         <table>
             <thead><tr>
-                <th>{{ __('projects.invoice.description') }}</th>
-                <th class="numeric">{{ __('projects.invoice.quantity') }}</th>
-                <th class="numeric">{{ __('projects.invoice.unit_price') }}</th>
-                <th class="numeric">{{ __('projects.invoice.amount') }}</th>
+                <th>{{ __('projects.invoice.description', [], 'id') }} / {{ __('projects.invoice.description', [], 'en') }}</th>
+                <th class="numeric">{{ __('projects.invoice.quantity', [], 'id') }} / {{ __('projects.invoice.quantity', [], 'en') }}</th>
+                <th class="numeric">{{ __('projects.invoice.unit_price', [], 'id') }} / {{ __('projects.invoice.unit_price', [], 'en') }}</th>
+                <th class="numeric">{{ __('projects.invoice.amount', [], 'id') }} / {{ __('projects.invoice.amount', [], 'en') }}</th>
             </tr></thead>
             <tbody>
                 @foreach ($invoice->items as $item)
@@ -72,17 +72,17 @@
                 @endforeach
             </tbody>
         </table>
-        <div class="total"><span>{{ __('projects.invoice.total') }}: &nbsp;</span><span>{{ $invoice->money()->format() }}</span></div>
-        <span class="status">{{ $invoice->status->label() }}</span>
+        <div class="total"><span>{{ __('projects.invoice.total', [], 'id') }} / {{ __('projects.invoice.total', [], 'en') }}: &nbsp;</span><span>{{ $invoice->money()->format() }}</span></div>
+        <span class="status">{{ __('enums.invoice_status.'.$invoice->status->value, [], 'id') }} / {{ __('enums.invoice_status.'.$invoice->status->value, [], 'en') }}</span>
         @if ($bank['name'] || $bank['account_name'] || $bank['account_number'])
             <section class="client">
-                <strong>{{ __('projects.invoice.bank_details') }}</strong>
-                @if ($bank['name'])<p>{{ __('projects.invoice.bank_name') }}: {{ $bank['name'] }}</p>@endif
-                @if ($bank['account_name'])<p>{{ __('projects.invoice.account_name') }}: {{ $bank['account_name'] }}</p>@endif
-                @if ($bank['account_number'])<p>{{ __('projects.invoice.account_number') }}: {{ $bank['account_number'] }}</p>@endif
+                <strong>{{ __('projects.invoice.bank_details', [], 'id') }} / {{ __('projects.invoice.bank_details', [], 'en') }}</strong>
+                @if ($bank['name'])<p>{{ __('projects.invoice.bank_name', [], 'id') }} / {{ __('projects.invoice.bank_name', [], 'en') }}: {{ $bank['name'] }}</p>@endif
+                @if ($bank['account_name'])<p>{{ __('projects.invoice.account_name', [], 'id') }} / {{ __('projects.invoice.account_name', [], 'en') }}: {{ $bank['account_name'] }}</p>@endif
+                @if ($bank['account_number'])<p>{{ __('projects.invoice.account_number', [], 'id') }} / {{ __('projects.invoice.account_number', [], 'en') }}: {{ $bank['account_number'] }}</p>@endif
             </section>
         @endif
-        <footer>{{ $footer ?: __('projects.invoice.document_footer') }}</footer>
+        <footer>{{ $footers['id'] }} / {{ $footers['en'] }}</footer>
     </main>
 </body>
 </html>

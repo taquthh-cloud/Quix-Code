@@ -210,6 +210,9 @@ it('invoice print view is authorized for the owner and hidden from other users',
         ->assertOk()
         ->assertSee('Website Acme')
         ->assertSee($invoice->invoice_number)
+        ->assertSee('Ditagihkan kepada / Bill to')
+        ->assertSee('Jumlah / Amount')
+        ->assertSee('Belum Dibayar / Unpaid')
         ->assertSee('window.print()');
 
     $this->actingAs($otherClient)->get(route('admin.invoices.print', ['invoice' => $invoice->id]))->assertNotFound();

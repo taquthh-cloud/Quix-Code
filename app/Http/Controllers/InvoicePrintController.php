@@ -25,7 +25,7 @@ class InvoicePrintController extends Controller
             ->whereIn('key', [
                 'company.name', 'company.address', 'company.npwp',
                 'bank.name', 'bank.account_name', 'bank.account_number',
-                'invoice.footer.'.app()->getLocale(),
+                'invoice.footer.id', 'invoice.footer.en',
             ])
             ->get()
             ->mapWithKeys(fn (Setting $setting) => [
@@ -47,7 +47,10 @@ class InvoicePrintController extends Controller
                 'account_name' => $settings->get('bank.account_name'),
                 'account_number' => $settings->get('bank.account_number'),
             ],
-            'footer' => $settings->get('invoice.footer.'.app()->getLocale(), ''),
+            'footers' => [
+                'id' => $settings->get('invoice.footer.id', __('projects.invoice.document_footer', [], 'id')),
+                'en' => $settings->get('invoice.footer.en', __('projects.invoice.document_footer', [], 'en')),
+            ],
         ]);
     }
 }
