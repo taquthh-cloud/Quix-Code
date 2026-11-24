@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\Setting;
 use Illuminate\View\View;
 
 class InvoicePrintController extends Controller
@@ -20,6 +21,33 @@ class InvoicePrintController extends Controller
             ? route('admin.projects.negotiation', $record->project_id)
             : route('portal.projects.negotiation', $record->project_id);
 
-        return view('invoices.print', ['invoice' => $record, 'backUrl' => $backUrl]);
+        $settings = Setting::query()
+            ->whereIn('key', [
+                'company.name', 'company.address', 'company.npwp',
+                'bank.name', 'bank.account_name', 'bank.account_number',
+                'invoice.footer.'.app()->getLocale(),
+            ])
+            ->get()
+            ->mapWithKeys(fn (Setting $setting) => [
+                $setting->key => is_array($setting->value)
+                    ? ($setting->value['value'] ?? '')
+                    : (string) $setting->value,
+            ]);
+
+        return view('invoices.print', [
+            'invoice' => $record,
+            'backUrl' => $backUrl,
+            'company' => [
+                'name' => $settings->get('company.name') ?: config('app.name'),
+                'address' => $settings->get('company.address'),
+                'npwp' => $settings->get('company.npwp'),
+            ],
+            'bank' => [
+                'name' => $settings->get('bank.name'),
+                'account_name' => $settings->get('bank.account_name'),
+                'account_number' => $settings->get('bank.account_number'),
+            ],
+            'footer' => $settings->get('invoice.footer.'.app()->getLocale(), ''),
+        ]);
     }
 }

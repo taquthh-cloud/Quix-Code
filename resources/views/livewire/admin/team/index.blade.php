@@ -25,6 +25,9 @@
     </x-card>
 
     <x-card :title="__('admin.team.directory')">
+        <div class="mb-4 flex justify-end">
+            <flux:button size="sm" variant="ghost" :href="route('admin.exports', ['type' => 'clients', 'q' => $search])">{{ __('admin.search_page.export_clients') }}</flux:button>
+        </div>
         <div class="mb-4 grid gap-3 sm:grid-cols-[1fr_14rem]">
             <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" :placeholder="__('admin.team.search')" :aria-label="__('admin.team.search')" />
             <flux:select wire:model.live="roleFilter" :aria-label="__('admin.team.role_filter')">
@@ -72,6 +75,13 @@
                                 <div class="flex flex-wrap justify-end gap-2">
                                     @if ($user->is_active)
                                         <flux:button size="sm" variant="ghost" wire:click="resendInvite({{ $user->id }})">{{ __('admin.team.resend_invite') }}</flux:button>
+                                        @if ($user->isClient())
+                                            <div class="flex flex-wrap items-end justify-end gap-2">
+                                                <flux:input wire:model="previewReasons.{{ $user->id }}" :label="__('admin.team.preview_reason')" />
+                                                <flux:button size="sm" variant="ghost" wire:click="previewClient({{ $user->id }})">{{ __('admin.team.client_preview') }}</flux:button>
+                                            </div>
+                                            <flux:error :name="'previewReasons.'.$user->id" />
+                                        @endif
                                     @endif
                                     <flux:button size="sm" variant="ghost" wire:click="resetTwoFactor({{ $user->id }})" wire:confirm="{{ __('admin.team.confirm_two_factor_reset') }}">{{ __('admin.team.reset_two_factor') }}</flux:button>
                                     <flux:button size="sm" :variant="$user->is_active ? 'danger' : 'primary'" wire:click="toggleActive({{ $user->id }})" wire:confirm="{{ $user->is_active ? __('admin.team.confirm_deactivate') : __('admin.team.confirm_activate') }}">

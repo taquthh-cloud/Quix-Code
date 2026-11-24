@@ -28,6 +28,9 @@ enum ActivityAction: string
     case QuotationSent = 'quotation_sent';
     case QuotationAccepted = 'quotation_accepted';
     case QuotationRejected = 'quotation_rejected';
+    case ClientPreviewStarted = 'client_preview_started';
+    case ClientPreviewEnded = 'client_preview_ended';
+    case MilestoneStatusChanged = 'milestone_status_changed';
 
     public function label(): string
     {

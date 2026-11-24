@@ -110,7 +110,12 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             $user->save();
 
             if ($user->isStaff()) {
+                $projectIds = $user->assignedProjects()->pluck('projects.id');
                 $user->assignedProjects()->detach();
+                ProjectMilestone::query()
+                    ->whereIn('project_id', $projectIds)
+                    ->where('assigned_to', $user->id)
+                    ->update(['assigned_to' => null]);
             }
 
             ActivityLogger::log(ActivityAction::UserDeactivated, $user, [], $actor);

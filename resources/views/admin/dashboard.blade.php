@@ -17,6 +17,26 @@
             @endif
         </div>
 
+        @if ($stats['aging'] !== null)
+            <section aria-labelledby="receivables-aging-title" class="flex flex-col gap-3">
+                <h2 id="receivables-aging-title" class="font-heading text-lg font-semibold text-slate-900 dark:text-slate-50">{{ __('admin.dashboard.aging_title') }}</h2>
+                <div class="grid gap-4 sm:grid-cols-3">
+                    @foreach (['0_7', '8_30', 'over_30'] as $bucket)
+                        <x-card :title="__('admin.dashboard.aging_'.$bucket)">
+                            @forelse ($stats['aging'][$bucket] as $row)
+                                <div class="flex items-center justify-between gap-3 py-1">
+                                    <span class="text-sm text-slate-600 dark:text-slate-400">{{ __('admin.dashboard.aging_count', ['count' => $row['count']]) }} · {{ $row['currency'] }}</span>
+                                    <strong class="text-right tabular-nums text-slate-900 dark:text-slate-50">{{ $row['amount'] }}</strong>
+                                </div>
+                            @empty
+                                <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('admin.dashboard.aging_empty') }}</p>
+                            @endforelse
+                        </x-card>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         <div>
             <h2 class="mb-3 font-heading text-lg font-semibold text-slate-900 dark:text-slate-50">{{ __('admin.dashboard.recent_projects') }}</h2>
 

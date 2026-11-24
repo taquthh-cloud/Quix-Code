@@ -80,7 +80,7 @@ class InvoiceManager extends Component
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.title' => ['required', 'string', 'max:180'],
             'items.*.qty' => ['required', 'regex:/^\\d{1,9}(?:\\.\\d{1,3})?$/', 'numeric', 'gt:0', 'max:1000000'],
-            'items.*.unit_price' => ['required', 'string', 'max:24', 'regex:/^\\d{1,16}(?:\\.\\d{1,2})?$/],
+            'items.*.unit_price' => ['required', 'string', 'max:24', 'regex:/^\\d{1,16}(?:\\.\\d{1,2})?$/'],
         ]);
 
         $invoiceType = InvoiceType::from($data['type']);

@@ -35,6 +35,9 @@ class Index extends Component
 
     public string $role = 'client';
 
+    /** @var array<int, string> */
+    public array $previewReasons = [];
+
     public function mount(): void
     {
         $this->authorize('admin');
@@ -152,6 +155,27 @@ class Index extends Component
         Flux::toast(variant: 'success', text: __($user->is_active
             ? 'admin.team.activated'
             : 'admin.team.deactivated'));
+    }
+
+    public function previewClient(int $userId): void
+    {
+        $this->authorize('admin');
+        $client = User::query()
+            ->where('role', UserRole::Client->value)
+            ->where('is_active', true)
+            ->findOrFail($userId);
+        $field = "previewReasons.{$userId}";
+        $this->previewReasons[$userId] = trim((string) ($this->previewReasons[$userId] ?? ''));
+        $this->validate([$field => ['required', 'string', 'min:8', 'max:500']]);
+        $reason = $this->previewReasons[$userId];
+
+        session()->put('admin.client_preview', [
+            'user_id' => $client->id,
+            'reason' => $reason,
+            'expires_at' => now()->addMinutes(30)->timestamp,
+        ]);
+        ActivityLogger::log(ActivityAction::ClientPreviewStarted, $client, ['reason' => $reason]);
+        $this->redirectRoute('admin.team.preview', ['client' => $client->id], navigate: true);
     }
 
     public function resendInvite(int $userId): void

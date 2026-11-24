@@ -345,9 +345,16 @@ class Show extends Component
             return;
         }
 
-        $milestone->status = $target;
-        $milestone->completed_at = $target === MilestoneStatus::Done ? now() : null;
-        $milestone->save();
+        $from = $milestone->status;
+        if ($from !== $target) {
+            DB::transaction(function () use ($milestone, $from, $target): void {
+                $milestone->forceFill([
+                    'status' => $target,
+                    'completed_at' => $target === MilestoneStatus::Done ? now() : null,
+                ])->save();
+                ActivityLogger::changed(ActivityAction::MilestoneStatusChanged, $milestone, $from, $target);
+            });
+        }
 
         $this->refreshProject();
         Flux::toast(variant: 'success', text: __('projects.toast.milestone_status'));

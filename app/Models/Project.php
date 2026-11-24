@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityAction;
 use App\Enums\Currency;
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
@@ -9,6 +10,7 @@ use App\Enums\MilestoneStatus;
 use App\Enums\ProjectStatus;
 use App\Enums\QuotationStatus;
 use App\Enums\UserRole;
+use App\Support\ActivityLogger;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -283,14 +285,28 @@ class Project extends Model
         return ! in_array($this->status, [ProjectStatus::Lead, ProjectStatus::Quoted, ProjectStatus::Negotiating], true);
     }
 
-    /** Tandai selesai semua milestone yang ambang progresnya sudah tercapai. Mengembalikan jumlah yang diubah. */
+    /** Tandai selesai semua milestone yang ambang progresnya sudah tercapai dan catat perubahan. */
     public function completeReachedMilestones(): int
     {
-        return ProjectMilestone::query()
-            ->where('project_id', $this->getKey())
-            ->where('status', '!=', MilestoneStatus::Done->value)
-            ->where('target_progress', '<=', (int) $this->progress_percent)
-            ->update(['status' => MilestoneStatus::Done->value, 'completed_at' => now()]);
+        return DB::transaction(function (): int {
+            $milestones = ProjectMilestone::query()
+                ->where('project_id', $this->getKey())
+                ->where('status', '!=', MilestoneStatus::Done->value)
+                ->where('target_progress', '<=', (int) $this->progress_percent)
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($milestones as $milestone) {
+                $from = $milestone->status;
+                $milestone->forceFill([
+                    'status' => MilestoneStatus::Done,
+                    'completed_at' => now(),
+                ])->save();
+                ActivityLogger::changed(ActivityAction::MilestoneStatusChanged, $milestone, $from, MilestoneStatus::Done);
+            }
+
+            return $milestones->count();
+        });
     }
 
     /** Set progres manual (0-100, dibatasi) lalu selesaikan milestone yang ambangnya tercapai. */

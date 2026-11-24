@@ -1,7 +1,10 @@
 <div class="flex flex-col gap-6">
-    <div>
-        <h1 class="font-heading text-2xl font-bold text-slate-900 dark:text-slate-50">{{ __('admin.nav.billing') }}</h1>
-        <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('admin.billing.subtitle') }}</p>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <h1 class="font-heading text-2xl font-bold text-slate-900 dark:text-slate-50">{{ __('admin.nav.billing') }}</h1>
+            <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('admin.billing.subtitle') }}</p>
+        </div>
+        <flux:button variant="ghost" :href="route('admin.exports', ['type' => 'invoices', 'q' => $search, 'status' => $status])">{{ __('admin.search_page.export_invoices') }}</flux:button>
     </div>
 
     <div class="grid gap-3 sm:grid-cols-[1fr_16rem]">

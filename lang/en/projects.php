@@ -185,6 +185,11 @@ return [
         'print_actions' => 'Invoice document actions',
         'save_pdf' => 'Print or save as PDF',
         'document_footer' => 'This document was issued electronically as a project billing record.',
+        'company_npwp' => 'Tax ID (NPWP)',
+        'bank_details' => 'Payment destination',
+        'bank_name' => 'Bank',
+        'account_name' => 'Account holder',
+        'account_number' => 'Account number',
         'errors' => [
             'project_not_billable' => 'Invoices can only be issued after the project reaches the deal stage.',
             'price_positive' => 'Unit price must be greater than zero.',

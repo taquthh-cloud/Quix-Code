@@ -54,12 +54,14 @@ it('admin can deactivate a staff member and assignments are detached', function 
     $staff = User::factory()->staff()->create();
     $project = \App\Models\Project::factory()->for($client, 'client')->create();
     $project->staff()->attach($staff->id);
+    $milestone = \App\Models\ProjectMilestone::factory()->for($project)->create(['assigned_to' => $staff->id]);
 
     $this->actingAs($this->admin);
     Livewire::test(Index::class)->call('toggleActive', $staff->id)->assertHasNoErrors();
 
     expect($staff->fresh()->is_active)->toBeFalse()
         ->and($project->staff()->whereKey($staff->id)->exists())->toBeFalse()
+        ->and($milestone->fresh()->assigned_to)->toBeNull()
         ->and(ActivityLog::where('subject_id', (string) $staff->id)->where('action', ActivityAction::UserDeactivated->value)->exists())->toBeTrue();
 });
 
@@ -97,6 +99,28 @@ it('admin can reset a user two-factor enrollment and the action is audited', fun
         ->and(ActivityLog::where('subject_id', (string) $staff->id)
             ->where('action', ActivityAction::UserTwoFactorReset->value)
             ->exists())->toBeTrue();
+});
+
+it('admin starts an audited read-only client preview with a required reason', function () {
+    $client = User::factory()->client()->create();
+    $project = \App\Models\Project::factory()->for($client, 'client')->create();
+
+    $this->actingAs($this->admin);
+    Livewire::test(Index::class)
+        ->set("previewReasons.{$client->id}", 'Support request review')
+        ->call('previewClient', $client->id)
+        ->assertHasNoErrors()
+        ->assertRedirect(route('admin.team.preview', ['client' => $client->id]));
+
+    expect(ActivityLog::where('subject_id', (string) $client->id)
+        ->where('action', ActivityAction::ClientPreviewStarted->value)
+        ->exists())->toBeTrue();
+
+    Livewire::test(\App\Livewire\Admin\Team\ClientPreview::class, ['client' => $client->id])
+        ->assertSee('Support request review')
+        ->assertSee($project->title)
+        ->call('endPreview')
+        ->assertRedirect(route('admin.team.index'));
 });
 
 it('only admins can open the team directory', function () {

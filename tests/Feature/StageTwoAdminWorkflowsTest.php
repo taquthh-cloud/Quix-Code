@@ -1,12 +1,14 @@
 <?php
 
 use App\Enums\ActivityAction;
+use App\Enums\InvoiceStatus;
 use App\Enums\TicketStatus;
 use App\Livewire\Admin\Activity\Index as ActivityIndex;
 use App\Livewire\Admin\Settings\Index as SettingsIndex;
 use App\Livewire\Admin\Projects\Form as ProjectForm;
 use App\Livewire\Admin\Projects\Kanban;
 use App\Models\ActivityLog;
+use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\RevisionTicket;
 use App\Models\Setting;
@@ -16,6 +18,37 @@ use Livewire\Livewire;
 beforeEach(function () {
     $this->admin = User::factory()->admin()->withTwoFactor()->create();
     $this->client = User::factory()->client()->create();
+});
+
+it('admin command center groups overdue invoices by aging bucket', function () {
+    app()->setLocale('id');
+    cache()->forget('admin.dashboard.invoice_aging');
+    $project = Project::factory()->for($this->client, 'client')->create();
+    Invoice::factory()->for($project)->create([
+        'status' => InvoiceStatus::Sent,
+        'amount' => 20_000,
+        'paid_amount' => 5_000,
+        'due_date' => now()->subDays(3)->toDateString(),
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.dashboard'))
+        ->assertOk()
+        ->assertSee('0–7 hari')
+        ->assertSee('Rp 15.000');
+});
+
+it('admin can globally search projects and export filtered project csv', function () {
+    $project = Project::factory()->for($this->client, 'client')->create(['title' => 'Global search target']);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.search', ['q' => 'Global search target']))
+        ->assertOk()
+        ->assertSee('Global search target');
+
+    $response = $this->get(route('admin.exports', ['type' => 'projects', 'q' => 'Global search target']));
+    $response->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+    expect($response->streamedContent())->toContain('Global search target');
 });
 
 it('admin can manually create a lead with source attribution and reject duplicate email', function () {

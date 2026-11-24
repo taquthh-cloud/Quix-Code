@@ -185,6 +185,11 @@ return [
         'print_actions' => 'Aksi dokumen invoice',
         'save_pdf' => 'Cetak atau simpan sebagai PDF',
         'document_footer' => 'Dokumen ini diterbitkan secara elektronik dan merupakan catatan tagihan proyek.',
+        'company_npwp' => 'NPWP',
+        'bank_details' => 'Tujuan pembayaran',
+        'bank_name' => 'Bank',
+        'account_name' => 'Nama pemilik rekening',
+        'account_number' => 'Nomor rekening',
         'errors' => [
             'project_not_billable' => 'Invoice hanya dapat diterbitkan setelah proyek mencapai tahap deal.',
             'price_positive' => 'Harga satuan harus lebih besar dari nol.',

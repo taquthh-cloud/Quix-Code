@@ -35,7 +35,9 @@
     <main class="sheet">
         <header>
             <div>
-                <p>{{ config('app.name') }}</p>
+                <p>{{ $company['name'] }}</p>
+                @if ($company['address'])<p>{{ $company['address'] }}</p>@endif
+                @if ($company['npwp'])<p>{{ __('projects.invoice.company_npwp') }}: {{ $company['npwp'] }}</p>@endif
                 <h1>{{ __('projects.invoice.document_heading') }}</h1>
             </div>
             <div class="meta">
@@ -72,7 +74,15 @@
         </table>
         <div class="total"><span>{{ __('projects.invoice.total') }}: &nbsp;</span><span>{{ $invoice->money()->format() }}</span></div>
         <span class="status">{{ $invoice->status->label() }}</span>
-        <footer>{{ __('projects.invoice.document_footer') }}</footer>
+        @if ($bank['name'] || $bank['account_name'] || $bank['account_number'])
+            <section class="client">
+                <strong>{{ __('projects.invoice.bank_details') }}</strong>
+                @if ($bank['name'])<p>{{ __('projects.invoice.bank_name') }}: {{ $bank['name'] }}</p>@endif
+                @if ($bank['account_name'])<p>{{ __('projects.invoice.account_name') }}: {{ $bank['account_name'] }}</p>@endif
+                @if ($bank['account_number'])<p>{{ __('projects.invoice.account_number') }}: {{ $bank['account_number'] }}</p>@endif
+            </section>
+        @endif
+        <footer>{{ $footer ?: __('projects.invoice.document_footer') }}</footer>
     </main>
 </body>
 </html>
