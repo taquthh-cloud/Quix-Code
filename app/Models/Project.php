@@ -257,6 +257,12 @@ class Project extends Model
                 ->exists(),
             [ProjectStatus::Deal, ProjectStatus::AwaitingDp] => $project->invoices()
                 ->where('type', InvoiceType::Dp->value)
+                ->whereIn('status', [
+                    InvoiceStatus::Sent->value,
+                    InvoiceStatus::Unpaid->value,
+                    InvoiceStatus::AwaitingVerification->value,
+                    InvoiceStatus::Paid->value,
+                ])
                 ->exists(),
             [ProjectStatus::AwaitingDp, ProjectStatus::Active] => $project->invoices()
                 ->where('type', InvoiceType::Dp->value)

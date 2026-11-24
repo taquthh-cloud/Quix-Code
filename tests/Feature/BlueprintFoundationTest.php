@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\FileVisibility;
+use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
 use App\Enums\ProjectStatus;
 use App\Models\ActivityLog;
@@ -40,6 +41,23 @@ it('requires an explicit reason for a project cancellation and records the trans
     expect($project->fresh()->status)->toBe(ProjectStatus::Cancelled)
         ->and(ProjectStatusHistory::query()->where('project_id', $project->id)->value('reason'))
         ->toBe('Client cancelled the engagement.');
+});
+
+it('cannot move a deal to awaiting dp while its down payment invoice is a draft', function () {
+    $client = User::factory()->client()->create();
+    $project = Project::factory()->for($client, 'client')->create(['status' => ProjectStatus::Deal]);
+    $invoice = Invoice::factory()->for($project)->create([
+        'type' => InvoiceType::Dp,
+        'status' => InvoiceStatus::Draft,
+    ]);
+
+    expect(fn () => $project->transitionTo(ProjectStatus::AwaitingDp))
+        ->toThrow(InvalidArgumentException::class);
+
+    $invoice->forceFill(['status' => InvoiceStatus::Sent, 'issued_at' => now()])->save();
+    $project->transitionTo(ProjectStatus::AwaitingDp);
+
+    expect($project->fresh()->status)->toBe(ProjectStatus::AwaitingDp);
 });
 
 it('cannot activate a project until the down payment invoice is fully paid', function () {
