@@ -60,6 +60,24 @@ it('cannot move a deal to awaiting dp while its down payment invoice is a draft'
     expect($project->fresh()->status)->toBe(ProjectStatus::AwaitingDp);
 });
 
+it('cannot move a deal to awaiting dp with an unpaid down payment invoice that was never issued', function () {
+    $client = User::factory()->client()->create();
+    $project = Project::factory()->for($client, 'client')->create(['status' => ProjectStatus::Deal]);
+    $invoice = Invoice::factory()->for($project)->create([
+        'type' => InvoiceType::Dp,
+        'status' => InvoiceStatus::Unpaid,
+        'issued_at' => null,
+    ]);
+
+    expect(fn () => $project->transitionTo(ProjectStatus::AwaitingDp))
+        ->toThrow(InvalidArgumentException::class);
+
+    $invoice->forceFill(['issued_at' => now()])->save();
+    $project->transitionTo(ProjectStatus::AwaitingDp);
+
+    expect($project->fresh()->status)->toBe(ProjectStatus::AwaitingDp);
+});
+
 it('cannot activate a project until the down payment invoice is fully paid', function () {
     $client = User::factory()->client()->create();
     $project = Project::factory()->for($client, 'client')->create(['status' => ProjectStatus::AwaitingDp]);

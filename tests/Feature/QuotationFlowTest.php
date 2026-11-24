@@ -216,6 +216,7 @@ it('klien menyetujui: deal, harga dan mata uang terkunci, Invoice DP terbit, men
         ->and($project->isCurrencyLocked())->toBeTrue()
         ->and($invoice->type)->toBe(InvoiceType::Dp)
         ->and($invoice->status)->toBe(InvoiceStatus::Unpaid)
+        ->and($invoice->issued_at)->not->toBeNull()
         ->and($invoice->amount)->toBe(13_200_000)
         ->and($invoice->currency)->toBe(Currency::IDR)
         ->and($invoice->invoice_number)->toBe('QC/'.now()->year.'/0001')

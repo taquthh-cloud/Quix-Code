@@ -257,6 +257,7 @@ class Project extends Model
                 ->exists(),
             [ProjectStatus::Deal, ProjectStatus::AwaitingDp] => $project->invoices()
                 ->where('type', InvoiceType::Dp->value)
+                ->whereNotNull('issued_at')
                 ->whereIn('status', [
                     InvoiceStatus::Sent->value,
                     InvoiceStatus::Unpaid->value,

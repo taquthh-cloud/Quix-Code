@@ -280,8 +280,11 @@ class QuotationService
             'amount' => $quotation->dpMoney()->amount,
             'due_date' => now()->addDays(self::DP_DUE_DAYS)->toDateString(),
         ]);
-        $invoice->status = InvoiceStatus::Unpaid;
-        $invoice->save();
+        // Invoice DP otomatis langsung terbit (bukan draf): syarat transisi deal → awaiting_dp.
+        $invoice->forceFill([
+            'status' => InvoiceStatus::Unpaid,
+            'issued_at' => now(),
+        ])->save();
 
         ActivityLogger::log(ActivityAction::InvoiceCreated, $project, [
             'invoice_number' => $invoice->invoice_number,
