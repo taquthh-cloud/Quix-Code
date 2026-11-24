@@ -180,7 +180,7 @@ return new class extends Migration
 
         Schema::create('milestone_acceptances', function (Blueprint $table) {
             $table->id();
-            $table->foreignUlid('milestone_id')->constrained('project_milestones')->restrictOnDelete();
+            $table->foreignId('milestone_id')->constrained('project_milestones')->restrictOnDelete();
             $table->foreignId('client_id')->constrained('users')->restrictOnDelete();
             $table->timestamp('accepted_at');
             $table->string('ip', 45)->nullable();
