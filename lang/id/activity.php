@@ -16,6 +16,7 @@ return [
         'client_preview_started' => 'Pratinjau portal klien dimulai',
         'client_preview_ended' => 'Pratinjau portal klien diakhiri',
         'milestone_status_changed' => 'Status milestone berubah',
+        'milestone_accepted' => 'Klien menerima hasil milestone',
         'user_deactivated' => 'Pengguna dinonaktifkan',
         'user_reactivated' => 'Pengguna diaktifkan kembali',
         'admin_project_availability_changed' => 'Ketersediaan admin untuk proyek diubah',

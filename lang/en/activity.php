@@ -15,6 +15,7 @@ return [
         'setting_updated' => 'Setting updated',
         'client_preview_started' => 'Client portal preview started',
         'client_preview_ended' => 'Client portal preview ended',
+        'milestone_accepted' => 'Client accepted milestone result',
         'milestone_status_changed' => 'Milestone status changed',
         'user_deactivated' => 'User deactivated',
         'user_reactivated' => 'User reactivated',

@@ -55,10 +55,11 @@ it('menu aktif ditandai aria-current di halaman tagihan dan quotation', function
 });
 
 it('label menu mengikuti bahasa akun', function () {
-    $this->actingAs($this->client);
-    app()->setLocale('en');
+    $client = User::factory()->client()->create(['locale' => 'en']);
+    $project = Project::factory()->active()->for($client, 'client')->create();
 
-    $this->get(route('portal.projects.show', $this->project->id))
+    $this->actingAs($client)
+        ->get(route('portal.projects.show', $project->id))
         ->assertOk()
         ->assertSee('Portal navigation', false)
         ->assertSee('Invoices');

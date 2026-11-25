@@ -469,6 +469,7 @@ class Show extends Component
             'assignments:id,project_id,staff_id,task_role',
             'staff:id,name,role',
             'milestones.assignee:id,name',
+            'milestones.acceptances.client:id,name',
         ]);
 
         $assignedAdminIds = $project->milestones->pluck('assigned_to')->filter()->unique()->values();

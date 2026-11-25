@@ -36,6 +36,7 @@ enum ActivityAction: string
     case ClientPreviewStarted = 'client_preview_started';
     case ClientPreviewEnded = 'client_preview_ended';
     case MilestoneStatusChanged = 'milestone_status_changed';
+    case MilestoneAccepted = 'milestone_accepted';
 
     public function label(): string
     {

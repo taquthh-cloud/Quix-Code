@@ -155,7 +155,7 @@ final class ProjectNextActions
             priority: $priority,
             title: __("next_action.{$key}.title", $params),
             description: __("next_action.{$key}.description", $params),
-            label: $url !== null && $label !== "next_action.{$key}.label" ? $label : null,
+            label: $url !== null && is_string($label) && $label !== "next_action.{$key}.label" ? $label : null,
             url: $url,
         );
     }

@@ -2,14 +2,19 @@
 
 namespace App\Livewire\Portal;
 
+use App\Enums\ActivityAction;
 use App\Enums\TicketCategory;
 use App\Enums\TicketPriority;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectGitCommit;
+use App\Models\ProjectMilestone;
 use App\Models\RevisionTicket;
+use App\Support\ActivityLogger;
 use App\Support\ProjectNextActions;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
@@ -68,6 +73,46 @@ class ProjectOverview extends Component
         session()->flash('portal-request-created', true);
     }
 
+    /**
+     * T4-12. Klien menerima hasil milestone yang sudah selesai. Baris milestone dikunci di transaksi
+     * dan diperiksa ulang, jadi dua tab atau klik ganda hanya menghasilkan satu penerimaan.
+     */
+    public function acceptMilestone(int $milestoneId): void
+    {
+        $project = $this->project();
+        $accepted = DB::transaction(function () use ($project, $milestoneId): ?string {
+            $milestone = ProjectMilestone::query()
+                ->where('project_id', $project->id)
+                ->lockForUpdate()
+                ->findOrFail($milestoneId);
+            $milestone->setRelation('project', $project);
+
+            if ($milestone->acceptances()->exists()) {
+                return null; // sudah diterima (tab lain): tidak ada yang berubah
+            }
+
+            $this->authorize('accept', $milestone);
+
+            $acceptance = $milestone->acceptances()->create([
+                'client_id' => auth()->id(),
+                'accepted_at' => now(),
+                'ip' => request()->ip(),
+            ]);
+
+            ActivityLogger::log(ActivityAction::MilestoneAccepted, $milestone, [
+                'acceptance_id' => $acceptance->getKey(),
+                'project_id' => $project->id,
+                'title' => $milestone->title,
+            ]);
+
+            return $milestone->title;
+        });
+
+        if ($accepted !== null) {
+            session()->flash('portal-milestone-accepted', $accepted);
+        }
+    }
+
     #[Computed]
     public function tickets()
     {
@@ -77,6 +122,19 @@ class ProjectOverview extends Component
             ->with('creator')
             ->latest()
             ->get();
+    }
+
+    /** @return EloquentCollection<int, ProjectMilestone> */
+    private function milestones(Project $project): EloquentCollection
+    {
+        /** @var EloquentCollection<int, ProjectMilestone> $milestones */
+        $milestones = $project->milestones()->with('acceptances')->get();
+
+        foreach ($milestones as $milestone) {
+            $milestone->setRelation('project', $project);
+        }
+
+        return $milestones;
     }
 
     /**
@@ -104,7 +162,7 @@ class ProjectOverview extends Component
 
         return view('livewire.portal.project-overview', [
             'project' => $project,
-            'milestones' => $project->milestones,
+            'milestones' => $this->milestones($project),
             'invoices' => Invoice::query()
                 ->visibleTo(auth()->user())
                 ->where('project_id', $project->id)

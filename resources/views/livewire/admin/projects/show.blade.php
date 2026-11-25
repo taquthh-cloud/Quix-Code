@@ -112,6 +112,12 @@
                                             · {{ __('projects.show.ms_assignee_short') }} {{ $milestone->assignee->name }}
                                         @endif
                                     </p>
+                                    @foreach ($milestone->acceptances as $acceptance)
+                                        <p class="mt-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300" data-acceptance="{{ $milestone->id }}">
+                                            ✓ {{ __('projects.show.ms_accepted_by', ['name' => $acceptance->client?->name ?? '-', 'date' => $acceptance->accepted_at->translatedFormat('d M Y H:i')]) }}
+                                            @if ($isAdmin && $acceptance->ip) · IP {{ $acceptance->ip }} @endif
+                                        </p>
+                                    @endforeach
                                 </div>
 
                                 <div class="flex flex-wrap items-center gap-1.5">

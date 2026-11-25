@@ -119,6 +119,7 @@ return [
         'ms_assignee' => 'Assignee',
         'ms_unassigned' => 'None',
         'ms_status' => 'Milestone status',
+        'ms_accepted_by' => 'Accepted by :name on :date',
         'ms_up' => 'Move up',
         'ms_down' => 'Move down',
         'ms_confirm_delete' => 'Delete this milestone?',

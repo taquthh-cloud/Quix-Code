@@ -36,4 +36,8 @@ return [
         'negotiation' => 'Quotation',
         'invoices' => 'Tagihan',
     ],
+    'milestone_accept' => 'Terima hasil',
+    'milestone_accept_confirm' => 'Terima hasil milestone ":title"? Penerimaan ini dicatat dan tidak dapat dibatalkan.',
+    'milestone_accepted_at' => 'Hasil diterima pada :date',
+    'milestone_accepted_flash' => 'Terima kasih. Hasil milestone ":title" sudah Anda terima.',
 ];

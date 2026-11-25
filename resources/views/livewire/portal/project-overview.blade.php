@@ -39,6 +39,12 @@
 
     <div class="grid gap-6 xl:grid-cols-2">
         <x-card :title="__('portal.milestones')" data-section="milestones">
+            @if (session()->has('portal-milestone-accepted'))
+                <div role="status" data-milestone-flash class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+                    {{ __('portal.milestone_accepted_flash', ['title' => session('portal-milestone-accepted')]) }}
+                </div>
+            @endif
+
             @if ($milestones->isEmpty())
                 <x-empty-state :title="__('portal.no_milestones')" :description="__('portal.no_milestones_hint')" class="py-6" />
             @else
@@ -53,6 +59,21 @@
                                 </p>
                             </div>
                             <x-badge-status :status="$milestone->status" />
+
+                            @php($acceptance = $milestone->acceptances->first())
+                            @if ($acceptance)
+                                <p class="basis-full text-xs font-medium text-emerald-700 dark:text-emerald-300" data-accepted="{{ $milestone->id }}">
+                                    ✓ {{ __('portal.milestone_accepted_at', ['date' => $acceptance->accepted_at->translatedFormat('d M Y H:i')]) }}
+                                </p>
+                            @elseif (auth()->user()->can('accept', $milestone))
+                                <div class="basis-full">
+                                    <flux:button size="sm" variant="primary" icon="check" class="min-h-11" data-accept="{{ $milestone->id }}"
+                                                 wire:click="acceptMilestone({{ $milestone->id }})" wire:loading.attr="disabled" wire:target="acceptMilestone"
+                                                 wire:confirm="{{ __('portal.milestone_accept_confirm', ['title' => $milestone->title]) }}">
+                                        {{ __('portal.milestone_accept') }}
+                                    </flux:button>
+                                </div>
+                            @endif
                         </li>
                     @endforeach
                 </ol>

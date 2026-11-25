@@ -119,6 +119,7 @@ return [
         'ms_assignee' => 'Penanggung jawab',
         'ms_unassigned' => 'Belum ada',
         'ms_status' => 'Status milestone',
+        'ms_accepted_by' => 'Diterima oleh :name pada :date',
         'ms_up' => 'Naikkan',
         'ms_down' => 'Turunkan',
         'ms_confirm_delete' => 'Hapus milestone ini?',

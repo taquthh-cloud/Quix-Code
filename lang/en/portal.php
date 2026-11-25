@@ -36,4 +36,8 @@ return [
         'negotiation' => 'Quotation',
         'invoices' => 'Invoices',
     ],
+    'milestone_accept' => 'Accept result',
+    'milestone_accept_confirm' => 'Accept the result of milestone ":title"? This is recorded and cannot be undone.',
+    'milestone_accepted_at' => 'Result accepted on :date',
+    'milestone_accepted_flash' => 'Thank you. You accepted the result of milestone ":title".',
 ];
