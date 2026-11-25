@@ -4,7 +4,6 @@ namespace App\Livewire\Admin\Projects;
 
 use App\Enums\ActivityAction;
 use App\Enums\TicketStatus;
-use App\Models\Project;
 use App\Models\RevisionTicket;
 use App\Support\ActivityLogger;
 use Flux\Flux;

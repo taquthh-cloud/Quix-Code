@@ -6,6 +6,7 @@ use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
 use App\Enums\ProjectStatus;
 use App\Enums\QuotationStatus;
+use App\Livewire\Admin\Leads\Index;
 use App\Livewire\Admin\Quotations\Builder;
 use App\Livewire\Portal\Negotiation as PortalNegotiation;
 use App\Models\ActivityLog;
@@ -566,7 +567,7 @@ it('daftar prospek tidak N+1 dan hanya memuat proyek sebelum deal', function () 
     $count = function () {
         DB::flushQueryLog();
         DB::enableQueryLog();
-        Livewire::test(App\Livewire\Admin\Leads\Index::class);
+        Livewire::test(Index::class);
 
         return count(DB::getQueryLog());
     };
@@ -582,5 +583,42 @@ it('daftar prospek tidak N+1 dan hanya memuat proyek sebelum deal', function () 
 
     expect($count())->toBe($sedikit);
 
-    Livewire::test(App\Livewire\Admin\Leads\Index::class)->assertSee('Prospek A')->assertDontSee('Sudah Aktif');
+    Livewire::test(Index::class)->assertSee('Prospek A')->assertDontSee('Sudah Aktif');
+});
+
+it('Invoice DP otomatis mengisi subtotal, diskon, dan PPN proporsional terhadap porsi termin', function () {
+    $project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Quoted]);
+    $quotation = ($this->makeSent)($project, [
+        'discount_amount' => 400_000, 'tax_bp' => 1100, 'tax_amount' => 550_000, 'total' => 5_550_000,
+        'dp_percent' => 30, 'payment_terms' => [3000, 4000, 3000],
+    ]);
+
+    $this->actingAs($this->client);
+    Livewire::test(PortalNegotiation::class, ['project' => $project->id])
+        ->call('startAccept', $quotation->id)->set('agreed', true)->call('accept', $quotation->id)
+        ->assertHasNoErrors();
+
+    $invoice = Invoice::firstOrFail();
+
+    expect($invoice->amount)->toBe(1_665_000)          // 30% x 5.550.000
+        ->and($invoice->discount_amount)->toBe(120_000) // 30% x 400.000
+        ->and($invoice->tax_amount)->toBe(165_000)      // 30% x 550.000
+        ->and($invoice->subtotal)->toBe(1_620_000)      // 30% x (5.000.000 + 400.000)
+        ->and($invoice->term_percent_bp)->toBe(3000)
+        ->and($invoice->subtotal - $invoice->discount_amount + $invoice->tax_amount)->toBe($invoice->amount);
+});
+
+it('invoice DP tanpa diskon dan PPN tetap konsisten: subtotal sama dengan jumlah', function () {
+    $project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Quoted]);
+    $quotation = ($this->makeSent)($project);
+
+    $this->actingAs($this->client);
+    Livewire::test(PortalNegotiation::class, ['project' => $project->id])
+        ->call('startAccept', $quotation->id)->set('agreed', true)->call('accept', $quotation->id);
+
+    $invoice = Invoice::firstOrFail();
+
+    expect($invoice->discount_amount)->toBe(0)
+        ->and($invoice->tax_amount)->toBe(0)
+        ->and($invoice->subtotal)->toBe($invoice->amount);
 });

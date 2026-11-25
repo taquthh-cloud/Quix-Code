@@ -1,10 +1,12 @@
 <?php
 
 use App\Enums\ProjectStatus;
+use App\Livewire\Admin\Leads\Index;
 use App\Livewire\Chat\Room;
 use App\Models\OrderChat;
 use App\Models\Project;
 use App\Models\User;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -66,8 +68,8 @@ it('penghitung polling tidak bisa dimanipulasi dari browser', function () {
 
     $room = Livewire::test(Room::class, ['projectId' => $this->project->id]);
 
-    expect(fn () => $room->set('idleTicks', 999))->toThrow(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class)
-        ->and(fn () => $room->set('lastSeenId', 999))->toThrow(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class);
+    expect(fn () => $room->set('idleTicks', 999))->toThrow(CannotUpdateLockedPropertyException::class)
+        ->and(fn () => $room->set('lastSeenId', 999))->toThrow(CannotUpdateLockedPropertyException::class);
 });
 
 it('hitungan belum dibaca per pengguna: klien hanya pesan admin, admin hanya pesan klien, staf selalu nol', function () {
@@ -106,6 +108,6 @@ it('daftar prospek admin menghitung pesan klien yang belum dibaca', function () 
 
     $this->actingAs($this->admin);
 
-    Livewire::test(\App\Livewire\Admin\Leads\Index::class)
+    Livewire::test(Index::class)
         ->assertViewHas('leads', fn ($leads) => $leads->first()->unread_chats_count === 2);
 });

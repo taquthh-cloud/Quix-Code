@@ -14,8 +14,7 @@ final readonly class Money
     public function __construct(
         public int $amount,
         public Currency $currency,
-    ) {
-    }
+    ) {}
 
     public static function of(int $minorUnits, Currency|string $currency): self
     {

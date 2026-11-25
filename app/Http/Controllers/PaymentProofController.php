@@ -28,6 +28,9 @@ class PaymentProofController extends Controller
         $disk = Storage::disk('local');
         abort_unless($disk->exists($path), 404);
 
-        return $disk->download($path, basename($path));
+        $response = $disk->download($path, basename($path));
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+
+        return $response;
     }
 }

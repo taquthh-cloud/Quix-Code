@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Enums\Currency;
 use App\Enums\QuotationStatus;
+use App\Enums\UserRole;
 use App\Support\Money;
 use App\Support\PaymentTerms;
 use App\Support\QuotationCalculator;
 use App\Support\QuotationSnapshot;
-use Illuminate\Database\Eloquent\Concerns\HasUlids;
-use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

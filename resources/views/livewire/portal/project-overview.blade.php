@@ -1,36 +1,58 @@
 <div class="flex flex-col gap-6">
     <div class="flex flex-col gap-2">
-        <a href="{{ route('portal.overview') }}" wire:navigate class="text-sm text-slate-600 hover:text-growth dark:text-slate-400">← {{ __('portal.title') }}</a>
+        <a href="{{ route('portal.overview') }}" wire:navigate class="inline-flex min-h-11 items-center text-sm text-slate-600 hover:text-growth dark:text-slate-400">← {{ __('portal.title') }}</a>
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="flex flex-wrap items-center gap-3">
                 <flux:heading size="xl">{{ $project->title }}</flux:heading>
                 <x-badge-status :status="$project->status" />
             </div>
-            <flux:button size="sm" :href="route('portal.projects.negotiation', $project->id)" wire:navigate>
-                {{ __('portal.quotation_chat') }}
-            </flux:button>
+            <div class="flex flex-wrap gap-2">
+                <flux:button size="sm" class="min-h-11" :href="route('portal.projects.invoices', $project->id)" wire:navigate>
+                    {{ __('payments.invoices_link') }}
+                </flux:button>
+                <flux:button size="sm" class="min-h-11" :href="route('portal.projects.negotiation', $project->id)" wire:navigate>
+                    {{ __('portal.quotation_chat') }}
+                </flux:button>
+            </div>
         </div>
     </div>
 
+    @if ($actions !== [])
+        <div class="flex flex-col gap-3">
+            <x-next-action :action="$actions[0]" />
+            @if (count($actions) > 1)
+                <div class="flex flex-wrap gap-2">
+                    @foreach (array_slice($actions, 1) as $extra)
+                        <x-next-action :action="$extra" compact />
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    @endif
+
     <x-card :title="__('portal.project_progress')">
         <div class="flex items-center gap-4">
-            <div class="min-w-0 flex-1"><x-progress-bar :value="$project->progress_percent" /></div>
-            <span class="font-semibold tabular-nums text-slate-900 dark:text-slate-50">{{ $project->progress_percent }}%</span>
+            <div class="min-w-0 flex-1"><x-progress-bar :value="$project->progress_percent" size="lg" :show-value="false" /></div>
+            <span class="font-heading text-2xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">{{ $project->progress_percent }}%</span>
         </div>
     </x-card>
 
     <div class="grid gap-6 xl:grid-cols-2">
-        <x-card :title="__('portal.milestones')">
+        <x-card :title="__('portal.milestones')" data-section="milestones">
             @if ($milestones->isEmpty())
-                <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('portal.no_milestones') }}</p>
+                <x-empty-state :title="__('portal.no_milestones')" :description="__('portal.no_milestones_hint')" class="py-6" />
             @else
                 <ol class="flex flex-col divide-y divide-slate-200 dark:divide-slate-800">
                     @foreach ($milestones as $milestone)
-                        <li wire:key="portal-milestone-{{ $milestone->id }}" class="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
-                            <div>
-                                <p class="font-medium text-slate-900 dark:text-slate-50">{{ $milestone->title }}</p>
+                        <li wire:key="portal-milestone-{{ $milestone->id }}" class="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 py-3 first:pt-0 last:pb-0">
+                            <div class="min-w-0">
+                                <p class="break-words font-medium text-slate-900 dark:text-slate-50">{{ $milestone->title }}</p>
+                                <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+                                    {{ __('portal.milestone_target', ['percent' => $milestone->target_progress]) }}
+                                    @if ($milestone->due_date) · {{ __('portal.milestone_due', ['date' => $milestone->due_date->translatedFormat('d M Y')]) }} @endif
+                                </p>
                             </div>
-                            <span class="shrink-0 text-sm text-slate-600 dark:text-slate-400">{{ __('enums.milestone_status.'.$milestone->status->value) }}</span>
+                            <x-badge-status :status="$milestone->status" />
                         </li>
                     @endforeach
                 </ol>
@@ -41,6 +63,25 @@
             <x-invoice-list :invoices="$invoices" />
         </x-card>
     </div>
+
+    <x-card :title="__('portal.timeline')" data-section="timeline">
+        @if ($commits->isEmpty())
+            <x-empty-state data-empty="timeline" :title="__('portal.timeline_empty')" :description="__('portal.timeline_empty_hint')" class="py-6" />
+        @else
+            <ol class="flex flex-col gap-4 border-s border-slate-200 ps-4 dark:border-slate-800">
+                @foreach ($commits as $commit)
+                    <li wire:key="portal-commit-{{ $commit->id }}" class="relative">
+                        <span class="absolute -start-[1.4rem] top-1.5 size-2.5 rounded-full bg-growth" aria-hidden="true"></span>
+                        <p class="break-words text-sm text-slate-900 dark:text-slate-50">{{ $commit->commit_message }}</p>
+                        <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+                            {{ $commit->pushed_at->translatedFormat('d M Y H:i') }}
+                            @if ($commit->progress_recorded !== null) · {{ __('portal.timeline_progress', ['percent' => $commit->progress_recorded]) }} @endif
+                        </p>
+                    </li>
+                @endforeach
+            </ol>
+        @endif
+    </x-card>
 
     <x-card :title="__('portal.client_requests')">
         @if (session()->has('portal-request-created'))

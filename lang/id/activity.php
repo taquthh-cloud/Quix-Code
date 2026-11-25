@@ -24,6 +24,7 @@ return [
         'invoice_sent' => 'Invoice dikirim',
         'invoice_paid' => 'Invoice lunas',
         'invoice_cancelled' => 'Invoice dibatalkan',
+        'payment_submitted' => 'Bukti pembayaran diunggah klien',
         'payment_verified' => 'Pembayaran diverifikasi',
         'payment_rejected' => 'Pembayaran ditolak',
         'quotation_sent' => 'Quotation dikirim',

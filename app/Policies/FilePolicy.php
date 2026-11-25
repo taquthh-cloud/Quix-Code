@@ -6,8 +6,8 @@ use App\Enums\FileVisibility;
 use App\Models\Project;
 use App\Models\ProjectFile;
 use App\Models\User;
-use Illuminate\Support\Facades\Gate;
 use App\Policies\Concerns\ChecksProjectAccess;
+use Illuminate\Support\Facades\Gate;
 
 class FilePolicy
 {

@@ -24,6 +24,7 @@ return [
         'invoice_sent' => 'Invoice sent',
         'invoice_paid' => 'Invoice paid',
         'invoice_cancelled' => 'Invoice cancelled',
+        'payment_submitted' => 'Payment proof submitted by client',
         'payment_verified' => 'Payment verified',
         'payment_rejected' => 'Payment rejected',
         'quotation_sent' => 'Quotation sent',

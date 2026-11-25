@@ -202,7 +202,7 @@ return [
             'amount_positive' => 'Jumlah baris harus lebih besar dari nol.',
             'invalid_amount' => 'Nominal tidak valid untuk mata uang proyek ini.',
             'create_failed' => 'Invoice belum dapat diterbitkan. Periksa kembali data dan coba lagi.',
-            'payment_exceeds_balance' => 'Nominal pembayaran melebihi sisa tagihan. Perbarui halaman dan periksa kembali.'
+            'payment_exceeds_balance' => 'Nominal pembayaran melebihi sisa tagihan. Perbarui halaman dan periksa kembali.',
         ],
     ],
 

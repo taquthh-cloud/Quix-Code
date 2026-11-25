@@ -86,8 +86,8 @@ class CsvExportController extends Controller
     }
 
     /** @param resource $output
-     *  @param list<string> $headers
-     *  @param iterable<object> $rows
+     * @param  list<string>  $headers
+     * @param  iterable<object>  $rows
      */
     private function writeRows($output, array $headers, iterable $rows): bool
     {

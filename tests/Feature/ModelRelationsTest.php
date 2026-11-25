@@ -5,6 +5,8 @@ use App\Models\CaseStudy;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectMilestone;
+use App\Models\Quotation;
+use App\Models\QuotationItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -52,8 +54,8 @@ it('scope visibleTo membatasi proyek per peran', function () {
 
 it('memindah status proyek hanya lewat transisi valid', function () {
     $project = Project::factory()->create();
-    $quotation = \App\Models\Quotation::factory()->sent()->for($project)->create();
-    \App\Models\QuotationItem::factory()->for($quotation)->create();
+    $quotation = Quotation::factory()->sent()->for($project)->create();
+    QuotationItem::factory()->for($quotation)->create();
 
     $project->transitionTo(ProjectStatus::Quoted);
     expect($project->fresh()->status)->toBe(ProjectStatus::Quoted);

@@ -1,6 +1,6 @@
 <div class="flex flex-col gap-6">
     <div class="flex flex-col gap-1">
-        <a href="{{ route('portal.overview') }}" wire:navigate class="text-sm text-slate-600 hover:text-growth dark:text-slate-400">← {{ __('portal.title') }}</a>
+        <a href="{{ route('portal.overview') }}" wire:navigate class="inline-flex min-h-11 items-center text-sm text-slate-600 hover:text-growth dark:text-slate-400">← {{ __('portal.title') }}</a>
         <div class="flex flex-wrap items-center gap-3">
             <flux:heading size="xl">{{ $project->title }}</flux:heading>
             <x-badge-status :status="$project->status" />

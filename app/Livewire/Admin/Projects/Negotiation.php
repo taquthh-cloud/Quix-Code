@@ -9,6 +9,7 @@ use App\Services\QuotationService;
 use App\Support\QuotationComparison;
 use DomainException;
 use Flux\Flux;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -86,7 +87,7 @@ class Negotiation extends Component
     /**
      * Pasangan [versi dipilih, versi sebelumnya] dari quotation proyek ini saja.
      *
-     * @param  \Illuminate\Support\Collection<int, Quotation>  $quotations
+     * @param  Collection<int, Quotation>  $quotations
      * @return array{0: ?Quotation, 1: ?Quotation}
      */
     private function comparisonPair($quotations): array

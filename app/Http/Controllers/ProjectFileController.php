@@ -17,9 +17,12 @@ class ProjectFileController
 
         abort_unless($disk->exists($file->path), 404);
 
-        return $disk->download(
+        $response = $disk->download(
             $file->path,
             $file->original_name ?: basename($file->path),
         );
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+
+        return $response;
     }
 }

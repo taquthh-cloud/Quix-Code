@@ -2,8 +2,11 @@
 
 use App\Enums\ActivityAction;
 use App\Enums\UserRole;
+use App\Livewire\Admin\Team\ClientPreview;
 use App\Livewire\Admin\Team\Index;
 use App\Models\ActivityLog;
+use App\Models\Project;
+use App\Models\ProjectMilestone;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Notification;
@@ -52,9 +55,9 @@ it('rejects admin role, invalid email, and duplicate email when creating users',
 it('admin can deactivate a staff member and assignments are detached', function () {
     $client = User::factory()->client()->create();
     $staff = User::factory()->staff()->create();
-    $project = \App\Models\Project::factory()->for($client, 'client')->create();
+    $project = Project::factory()->for($client, 'client')->create();
     $project->staff()->attach($staff->id);
-    $milestone = \App\Models\ProjectMilestone::factory()->for($project)->create(['assigned_to' => $staff->id]);
+    $milestone = ProjectMilestone::factory()->for($project)->create(['assigned_to' => $staff->id]);
 
     $this->actingAs($this->admin);
     Livewire::test(Index::class)->call('toggleActive', $staff->id)->assertHasNoErrors();
@@ -78,7 +81,7 @@ it('admin can change roles only when project ownership and assignments are empty
             ->where('action', ActivityAction::UserRoleChanged->value)
             ->exists())->toBeTrue();
 
-    $project = \App\Models\Project::factory()->for($staff->fresh(), 'client')->create();
+    $project = Project::factory()->for($staff->fresh(), 'client')->create();
     Livewire::test(Index::class)
         ->call('changeRole', $staff->id, 'staff')
         ->assertHasErrors("roleChanges.{$staff->id}");
@@ -103,7 +106,7 @@ it('admin can reset a user two-factor enrollment and the action is audited', fun
 
 it('admin starts an audited read-only client preview with a required reason', function () {
     $client = User::factory()->client()->create();
-    $project = \App\Models\Project::factory()->for($client, 'client')->create();
+    $project = Project::factory()->for($client, 'client')->create();
 
     $this->actingAs($this->admin);
     Livewire::test(Index::class)
@@ -116,7 +119,7 @@ it('admin starts an audited read-only client preview with a required reason', fu
         ->where('action', ActivityAction::ClientPreviewStarted->value)
         ->exists())->toBeTrue();
 
-    Livewire::test(\App\Livewire\Admin\Team\ClientPreview::class, ['client' => $client->id])
+    Livewire::test(ClientPreview::class, ['client' => $client->id])
         ->assertSee('Support request review')
         ->assertSee($project->title)
         ->call('endPreview')

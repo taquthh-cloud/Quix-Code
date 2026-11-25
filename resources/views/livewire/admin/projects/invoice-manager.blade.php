@@ -47,14 +47,8 @@
                     @endforeach
                 </div>
 
-                <div class="grid items-end gap-4 sm:grid-cols-2">
-                    <flux:input wire:model="discount" type="number" min="0" step="{{ $project->currency->decimals() === 0 ? '1' : '0.01' }}" :label="__('projects.invoice.discount')" />
-                    <flux:checkbox wire:model="applyTax" :label="__('projects.invoice.apply_tax', ['rate' => rtrim(rtrim(\App\Support\QuotationCalculator::bpToPercent($this->taxRateBp()), '0'), '.') ?: '0'])" />
-                </div>
-
                 <flux:error name="type" />
                 <flux:error name="dueDate" />
-                <flux:error name="discount" />
                 <div class="flex justify-end border-t border-slate-200 pt-4 dark:border-slate-800">
                     <flux:button type="submit" variant="primary" wire:loading.attr="disabled">{{ __('projects.invoice.create') }}</flux:button>
                 </div>
@@ -80,6 +74,8 @@
                                 <p class="text-sm font-semibold text-slate-900 dark:text-slate-50">{{ __('projects.invoice.payment_review') }}</p>
                                 <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ $invoice->invoice_number }} · {{ \App\Support\Money::of($payment->amount, $invoice->currency)->format() }} · {{ $payment->method }}</p>
                                 @if ($payment->reference_number)<p class="text-xs text-slate-600 dark:text-slate-400">{{ __('projects.invoice.reference') }}: {{ $payment->reference_number }}</p>@endif
+                                @if ($payment->bank_name || $payment->sender_name)<p class="text-xs text-slate-600 dark:text-slate-400">{{ __('payments.admin.bank') }}: {{ $payment->bank_name ?: '-' }} · {{ __('payments.admin.sender') }}: {{ $payment->sender_name ?: '-' }}</p>@endif
+                                @if ($payment->paid_at)<p class="text-xs text-slate-600 dark:text-slate-400">{{ __('payments.admin.paid_at') }}: {{ $payment->paid_at->translatedFormat('d M Y') }}</p>@endif
                                 @if ($payment->proof_path)<a class="mt-1 inline-block text-xs font-medium text-growth hover:underline" href="{{ route('admin.payments.proof', ['payment' => $payment->id]) }}">{{ __('projects.invoice.view_proof') }}</a>@endif
                             </div>
                             <flux:button size="sm" variant="primary" wire:click="verifyPayment({{ $payment->id }})" wire:confirm="{{ __('projects.invoice.confirm_verify') }}">{{ __('projects.invoice.verify') }}</flux:button>

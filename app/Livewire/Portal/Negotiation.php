@@ -19,7 +19,7 @@ use Livewire\Component;
  * Menu "Quotation & Chat" di portal klien. Proyek dan quotation selalu dimuat lewat visibleTo,
  * jadi klien lain mendapat 404 dan draf tidak pernah terlihat.
  */
-#[Layout('layouts::app')]
+#[Layout('layouts::portal')]
 class Negotiation extends Component
 {
     #[Locked]

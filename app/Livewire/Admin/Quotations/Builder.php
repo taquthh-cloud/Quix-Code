@@ -6,7 +6,6 @@ use App\Enums\Currency;
 use App\Enums\QuotationStatus;
 use App\Models\Project;
 use App\Models\Quotation;
-use App\Models\Setting;
 use App\Services\QuotationService;
 use App\Support\Money;
 use App\Support\PaymentTerms;

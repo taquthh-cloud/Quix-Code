@@ -9,6 +9,7 @@ use App\Models\ProjectMilestone;
 use App\Models\Quotation;
 use App\Models\RevisionTicket;
 use App\Models\User;
+use Illuminate\Database\Eloquent\MissingAttributeException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 
@@ -107,7 +108,7 @@ it('harga disembunyikan dari staf di level query, bukan hanya tampilan', functio
     expect($forAdmin->final_price)->toBe(25_000_000)
         ->and($forStaff->getAttributes())->not->toHaveKey('final_price')
         ->and($forStaff->getAttributes())->not->toHaveKey('budget_reference')
-        ->and(fn () => $forStaff->final_price)->toThrow(\Illuminate\Database\Eloquent\MissingAttributeException::class)
+        ->and(fn () => $forStaff->final_price)->toThrow(MissingAttributeException::class)
         ->and($forStaff->toArray())->not->toHaveKey('final_price')
         ->and(Invoice::visibleTo($this->staff)->count())->toBe(0)
         ->and(Quotation::visibleTo($this->staff)->count())->toBe(0)

@@ -6,7 +6,6 @@ use App\Enums\ActivityAction;
 use App\Enums\Currency;
 use App\Enums\UserRole;
 use App\Support\ActivityLogger;
-use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -41,10 +40,9 @@ use Laravel\Passkeys\PasskeyAuthenticatable;
 #[Fillable(['name', 'email', 'password', 'whatsapp', 'whatsapp_opt_in', 'locale'])]
 #[Hidden(['password', 'remember_token'])]
 
-
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
-    use HasFactory, Notifiable, SoftDeletes, TwoFactorAuthenticatable, PasskeyAuthenticatable;
+    use HasFactory, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
      * Get the attributes that should be cast.

@@ -202,7 +202,7 @@ return [
             'amount_positive' => 'Line total must be greater than zero.',
             'invalid_amount' => 'The amount is invalid for this project currency.',
             'create_failed' => 'The invoice could not be issued. Review the information and try again.',
-            'payment_exceeds_balance' => 'The payment exceeds the remaining balance. Refresh and review the invoice.'
+            'payment_exceeds_balance' => 'The payment exceeds the remaining balance. Refresh and review the invoice.',
         ],
     ],
 

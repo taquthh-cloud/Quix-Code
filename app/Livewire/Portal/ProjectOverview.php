@@ -6,7 +6,10 @@ use App\Enums\TicketCategory;
 use App\Enums\TicketPriority;
 use App\Models\Invoice;
 use App\Models\Project;
+use App\Models\ProjectGitCommit;
 use App\Models\RevisionTicket;
+use App\Support\ProjectNextActions;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
@@ -14,7 +17,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
-#[Layout('layouts::app')]
+#[Layout('layouts::portal')]
 class ProjectOverview extends Component
 {
     #[Locked]
@@ -76,6 +79,23 @@ class ProjectOverview extends Component
             ->get();
     }
 
+    /**
+     * T4-03. Linimasa pembaruan pengerjaan (diisi webhook di Tahap 5). Hash dan email penulis
+     * tidak pernah diambil, jadi tidak bisa bocor ke tampilan klien.
+     *
+     * @return Collection<int, ProjectGitCommit>
+     */
+    private function commits(): Collection
+    {
+        return ProjectGitCommit::query()
+            ->select(['id', 'project_id', 'commit_message', 'progress_recorded', 'pushed_at'])
+            ->where('project_id', $this->projectId)
+            ->orderByDesc('pushed_at')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
+    }
+
     public function render(): View
     {
         $project = $this->project;
@@ -92,6 +112,8 @@ class ProjectOverview extends Component
                 ->orderBy('created_at')
                 ->get(),
             'tickets' => $this->tickets,
+            'commits' => $this->commits(),
+            'actions' => ProjectNextActions::for($project),
         ])->title($project->title);
     }
 }

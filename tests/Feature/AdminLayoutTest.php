@@ -4,7 +4,6 @@ use App\Enums\ActivityAction;
 use App\Enums\InvoiceStatus;
 use App\Enums\ProjectStatus;
 use App\Enums\TicketStatus;
-use App\Enums\UserRole;
 use App\Http\Middleware\SetLocale;
 use App\Models\ActivityLog;
 use App\Models\Invoice;

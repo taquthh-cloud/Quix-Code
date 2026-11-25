@@ -17,7 +17,7 @@
                     <span class="tabular-nums">{{ $invoice->money()->format() }}</span>
                     <x-badge-status :status="$invoice->status" />
                     <a href="{{ route('admin.invoices.print', $invoice->id) }}" target="_blank" rel="noopener noreferrer"
-                       class="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-growth hover:text-growth dark:border-slate-700 dark:text-slate-200"
+                       class="inline-flex min-h-11 items-center rounded-md border border-slate-300 px-3 py-1 text-xs font-medium lg:min-h-0 lg:px-2.5 text-slate-700 hover:border-growth hover:text-growth dark:border-slate-700 dark:text-slate-200"
                        aria-label="{{ __('projects.invoice.print_invoice', ['number' => $invoice->invoice_number]) }}">
                         {{ __('projects.invoice.print') }}
                     </a>

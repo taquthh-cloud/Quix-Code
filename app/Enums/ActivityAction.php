@@ -24,6 +24,7 @@ enum ActivityAction: string
     case InvoiceSent = 'invoice_sent';
     case InvoicePaid = 'invoice_paid';
     case InvoiceCancelled = 'invoice_cancelled';
+    case PaymentSubmitted = 'payment_submitted';
     case PaymentVerified = 'payment_verified';
     case PaymentRejected = 'payment_rejected';
     case QuotationSent = 'quotation_sent';

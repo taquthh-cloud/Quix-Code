@@ -7,6 +7,7 @@ use App\Livewire\Admin\Projects\InvoiceManager;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Project;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -220,7 +221,7 @@ it('invoice print view is authorized for the owner and hidden from other users',
 });
 
 it('invoice manual menerapkan diskon lalu PPN dari pengaturan', function () {
-    \App\Models\Setting::query()->create(['key' => 'tax.rate_bp', 'value' => ['basis_points' => 1100]]);
+    Setting::query()->create(['key' => 'tax.rate_bp', 'value' => ['basis_points' => 1100]]);
     $project = Project::factory()->for($this->client, 'client')->create([
         'status' => ProjectStatus::Active,
         'currency' => Currency::IDR,
@@ -247,7 +248,7 @@ it('invoice manual menerapkan diskon lalu PPN dari pengaturan', function () {
 });
 
 it('invoice manual tanpa PPN bila opsi dimatikan, dan diskon sebesar subtotal ditolak', function () {
-    \App\Models\Setting::query()->create(['key' => 'tax.rate_bp', 'value' => ['basis_points' => 1100]]);
+    Setting::query()->create(['key' => 'tax.rate_bp', 'value' => ['basis_points' => 1100]]);
     $project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Active]);
     $items = [['title' => 'Jasa', 'qty' => '1', 'unit_price' => '10000']];
 
