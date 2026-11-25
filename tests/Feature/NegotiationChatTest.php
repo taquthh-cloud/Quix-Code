@@ -6,15 +6,19 @@ use App\Livewire\Chat\Room;
 use App\Models\ActivityLog;
 use App\Models\OrderChat;
 use App\Models\Project;
+use App\Models\Quotation;
+use App\Models\QuotationItem;
 use App\Models\User;
 use Livewire\Livewire;
 
 beforeEach(function () {
     app()->setLocale('id');
-    $this->admin = User::factory()->admin()->create();
+    $this->admin = User::factory()->admin()->withTwoFactor()->create();
     $this->staff = User::factory()->staff()->create();
     $this->client = User::factory()->client()->create();
     $this->project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Quoted]);
+    $quotation = Quotation::factory()->sent()->for($this->project)->create();
+    QuotationItem::factory()->for($quotation)->create();
 });
 
 it('klien mengirim pesan: tersimpan apa adanya (dipangkas) dan proyek masuk negosiasi', function () {

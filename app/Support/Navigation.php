@@ -22,6 +22,7 @@ class Navigation
 
         return [
             ['key' => 'dashboard', 'route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'home', 'label' => 'admin.nav.command_center', 'roles' => $internal],
+            ['key' => 'search', 'route' => 'admin.search', 'match' => 'admin.search', 'icon' => 'magnifying-glass', 'label' => 'admin.search_page.title', 'roles' => $adminOnly],
             ['key' => 'leads', 'route' => 'admin.leads.index', 'match' => 'admin.leads.*', 'icon' => 'inbox', 'label' => 'admin.nav.leads', 'roles' => $adminOnly],
             ['key' => 'projects', 'route' => 'admin.projects.index', 'match' => 'admin.projects.*', 'icon' => 'folder', 'label' => 'admin.nav.projects', 'roles' => $internal],
             ['key' => 'kanban', 'route' => 'admin.kanban', 'match' => 'admin.kanban', 'icon' => 'view-columns', 'label' => 'admin.nav.kanban', 'roles' => $internal],

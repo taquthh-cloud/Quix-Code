@@ -117,6 +117,18 @@ class Security extends Component
         Flux::toast(variant: 'success', text: __('Password updated.'));
     }
 
+    public function logoutOtherDevices(): void
+    {
+        $validated = $this->validate([
+            'current_password' => $this->currentPasswordRules(),
+        ]);
+
+        Auth::logoutOtherDevices($validated['current_password']);
+        $this->reset('current_password');
+
+        Flux::toast(variant: 'success', text: __('ui.security.devices_logged_out'));
+    }
+
     /**
      * Load the user's passkeys.
      */
@@ -260,6 +272,8 @@ class Security extends Component
      */
     public function disable(DisableTwoFactorAuthentication $disableTwoFactorAuthentication): void
     {
+        abort_if(auth()->user()->isAdmin(), 403);
+
         $disableTwoFactorAuthentication(auth()->user());
 
         $this->twoFactorEnabled = false;

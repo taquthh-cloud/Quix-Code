@@ -18,7 +18,7 @@ class InvoiceFactory extends Factory
     {
         return [
             'project_id' => Project::factory(),
-            'invoice_number' => 'INV-'.now()->year.'-'.fake()->unique()->numerify('#####'),
+            'invoice_number' => 'QC/'.now()->year.'/'.fake()->unique()->numerify('#####'),
             'type' => InvoiceType::Dp,
             'currency' => Currency::IDR,
             'amount' => 10_000_000,
@@ -29,8 +29,9 @@ class InvoiceFactory extends Factory
 
     public function paid(): static
     {
-        return $this->state(fn () => [
+        return $this->state(fn (array $attributes) => [
             'status' => InvoiceStatus::Paid,
+            'paid_amount' => $attributes['amount'] ?? 10_000_000,
             'paid_at' => now(),
             'payment_method' => 'manual_transfer',
         ]);

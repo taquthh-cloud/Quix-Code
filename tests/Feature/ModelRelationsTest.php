@@ -5,6 +5,8 @@ use App\Models\CaseStudy;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectMilestone;
+use App\Models\Quotation;
+use App\Models\QuotationItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +37,7 @@ it('menghubungkan proyek dengan klien, staf, milestone, dan invoice', function (
 });
 
 it('scope visibleTo membatasi proyek per peran', function () {
-    $admin = User::factory()->admin()->create();
+    $admin = User::factory()->admin()->withTwoFactor()->create();
     $staff = User::factory()->staff()->create();
     $clientA = User::factory()->client()->create();
     $clientB = User::factory()->client()->create();
@@ -52,6 +54,8 @@ it('scope visibleTo membatasi proyek per peran', function () {
 
 it('memindah status proyek hanya lewat transisi valid', function () {
     $project = Project::factory()->create();
+    $quotation = Quotation::factory()->sent()->for($project)->create();
+    QuotationItem::factory()->for($quotation)->create();
 
     $project->transitionTo(ProjectStatus::Quoted);
     expect($project->fresh()->status)->toBe(ProjectStatus::Quoted);

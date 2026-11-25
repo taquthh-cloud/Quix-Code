@@ -2,26 +2,34 @@
 
 namespace App\Support;
 
-use App\Models\Invoice;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
 
-/** Nomor invoice berurutan per tahun: INV-2026-0001. Panggil di dalam transaksi. */
+/** Nomor invoice berurutan per tahun: QC/2026/0001. */
 final class InvoiceNumber
 {
     public static function next(?CarbonInterface $at = null): string
     {
-        $prefix = 'INV-'.($at ?? now())->year.'-';
+        $year = ($at ?? now())->year;
 
-        // Termasuk invoice yang di-soft-delete agar nomor tidak pernah dipakai ulang.
-        $last = Invoice::withTrashed()
-            ->where('invoice_number', 'like', $prefix.'%')
-            ->orderByRaw('length(invoice_number) desc')
-            ->orderByDesc('invoice_number')
-            ->lockForUpdate()
-            ->value('invoice_number');
+        return DB::transaction(function () use ($year): string {
+            DB::table('invoice_sequences')->insertOrIgnore([
+                'year' => $year,
+                'last_number' => 0,
+            ]);
 
-        $sequence = $last === null ? 1 : ((int) substr($last, strlen($prefix))) + 1;
+            $sequence = DB::table('invoice_sequences')
+                ->where('year', $year)
+                ->lockForUpdate()
+                ->first();
 
-        return $prefix.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+            $next = (int) $sequence->last_number + 1;
+
+            DB::table('invoice_sequences')
+                ->where('year', $year)
+                ->update(['last_number' => $next, 'updated_at' => now()]);
+
+            return 'QC/'.$year.'/'.str_pad((string) $next, 4, '0', STR_PAD_LEFT);
+        });
     }
 }

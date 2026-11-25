@@ -4,7 +4,7 @@ use App\Enums\ActivityAction;
 use App\Enums\InvoiceStatus;
 use App\Enums\ProjectStatus;
 use App\Enums\TicketStatus;
-use App\Enums\UserRole;
+use App\Http\Middleware\SetLocale;
 use App\Models\ActivityLog;
 use App\Models\Invoice;
 use App\Models\Project;
@@ -12,13 +12,26 @@ use App\Models\RevisionTicket;
 use App\Models\User;
 use App\Support\ActivityLogger;
 use App\Support\Navigation;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
     app()->setLocale('id');
-    $this->admin = User::factory()->admin()->create();
+    $this->admin = User::factory()->admin()->withTwoFactor()->create();
     $this->staff = User::factory()->staff()->create();
     $this->client = User::factory()->client()->create();
+});
+
+it('locale middleware tolerates authenticated users loaded without the locale column', function () {
+    $partialAdmin = User::query()->select('id')->findOrFail($this->admin->id);
+    $request = Request::create('/');
+    $request->setUserResolver(fn () => $partialAdmin);
+    // App::setLocale() menimpa config('app.locale'), jadi default dipatok dulu dan tidak diubah ke 'en'.
+    app()->setLocale('id');
+
+    app(SetLocale::class)->handle($request, fn () => response('ok'));
+
+    expect(app()->getLocale())->toBe('id');
 });
 
 // ------------------------------------------------------------------ navigasi
@@ -88,6 +101,7 @@ it('jumlah query dashboard tidak bertambah saat proyek bertambah (tanpa N+1)', f
     };
 
     Project::factory()->for($this->client, 'client')->create();
+    $countQueries(); // pemanasan: query sekali-jalan (cache/skema) tidak dihitung
     $sedikit = $countQueries();
 
     Project::factory()->count(8)->create(); // masing-masing dengan klien sendiri

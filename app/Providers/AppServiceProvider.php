@@ -2,25 +2,32 @@
 
 namespace App\Providers;
 
+use App\Events\DownPaymentInvoiceIssued;
+use App\Events\QuotationExpiringSoon;
+use App\Events\QuotationSent;
 use App\Models\Invoice;
 use App\Models\OrderChat;
 use App\Models\Payment;
 use App\Models\Project;
+use App\Models\ProjectFile;
 use App\Models\ProjectMilestone;
 use App\Models\Quotation;
 use App\Models\RevisionTicket;
 use App\Models\User;
 use App\Policies\ChatPolicy;
+use App\Policies\FilePolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\MilestonePolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\QuotationPolicy;
 use App\Policies\TicketPolicy;
+use App\Services\Notifier;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -49,10 +56,16 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(RevisionTicket::class, TicketPolicy::class);
         Gate::policy(OrderChat::class, ChatPolicy::class);
         Gate::policy(ProjectMilestone::class, MilestonePolicy::class);
+        Gate::policy(ProjectFile::class, FilePolicy::class);
 
         Gate::define('admin', fn (User $user) => $user->isAdmin());
         Gate::define('access-internal', fn (User $user) => $user->isAdmin() || $user->isStaff());
         Gate::define('access-portal', fn (User $user) => $user->isClient());
+
+        // Email transaksional (T3-09). Closure, bukan kelas listener, agar tidak ikut terdaftar dua kali oleh auto-discovery.
+        Event::listen(QuotationSent::class, fn (QuotationSent $e) => app(Notifier::class)->quotationSent($e->quotation));
+        Event::listen(QuotationExpiringSoon::class, fn (QuotationExpiringSoon $e) => app(Notifier::class)->quotationExpiring($e->quotation));
+        Event::listen(DownPaymentInvoiceIssued::class, fn (DownPaymentInvoiceIssued $e) => app(Notifier::class)->downPaymentInvoice($e->invoice));
 
         // Catat login terakhir (termasuk login via passkey dan 2FA).
         Event::listen(Login::class, function (Login $event) {
@@ -68,6 +81,7 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
+        Model::shouldBeStrict(! app()->isProduction());
 
         DB::prohibitDestructiveCommands(
             app()->isProduction(),

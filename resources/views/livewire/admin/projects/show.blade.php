@@ -112,6 +112,12 @@
                                             · {{ __('projects.show.ms_assignee_short') }} {{ $milestone->assignee->name }}
                                         @endif
                                     </p>
+                                    @foreach ($milestone->acceptances as $acceptance)
+                                        <p class="mt-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300" data-acceptance="{{ $milestone->id }}">
+                                            ✓ {{ __('projects.show.ms_accepted_by', ['name' => $acceptance->client?->name ?? '-', 'date' => $acceptance->accepted_at->translatedFormat('d M Y H:i')]) }}
+                                            @if ($isAdmin && $acceptance->ip) · IP {{ $acceptance->ip }} @endif
+                                        </p>
+                                    @endforeach
                                 </div>
 
                                 <div class="flex flex-wrap items-center gap-1.5">
@@ -154,8 +160,8 @@
 
                         <flux:select wire:model="ms_assignee" :label="__('projects.show.ms_assignee')" class="sm:col-span-2">
                             <flux:select.option value="">{{ __('projects.show.ms_unassigned') }}</flux:select.option>
-                            @foreach ($project->staff as $member)
-                                <flux:select.option :value="(string) $member->id">{{ $member->name }}</flux:select.option>
+                            @foreach ($milestoneAssignees as $member)
+                                <flux:select.option :value="(string) $member->id">{{ $member->name }} · {{ $member->role->label() }}</flux:select.option>
                             @endforeach
                         </flux:select>
                         <flux:error name="ms_assignee" class="sm:col-span-2" />
@@ -188,6 +194,29 @@
                         <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('projects.show.no_activity') }}</p>
                     @endforelse
                 </x-card>
+
+                <x-card :title="__('projects.notes.title')">
+                    @if ($notes->isEmpty())
+                        <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('projects.notes.empty') }}</p>
+                    @else
+                        <ul class="mb-4 divide-y divide-slate-200 dark:divide-slate-800">
+                            @foreach ($notes as $note)
+                                <li wire:key="project-note-{{ $note->id }}" class="flex items-start justify-between gap-3 py-3">
+                                    <div>
+                                        <p class="whitespace-pre-line text-sm text-slate-800 dark:text-slate-200">{{ $note->body }}</p>
+                                        <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ $note->author?->name }} · {{ $note->created_at->diffForHumans() }}</p>
+                                    </div>
+                                    <flux:button size="sm" variant="ghost" icon="trash" :aria-label="__('projects.notes.delete')" wire:click="deleteNote({{ $note->id }})" wire:confirm="{{ __('projects.notes.confirm_delete') }}" />
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                    <form wire:submit="addNote" class="flex flex-col gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+                        <flux:textarea wire:model="noteBody" :label="__('projects.notes.new')" rows="3" />
+                        <flux:error name="noteBody" />
+                        <div class="flex justify-end"><flux:button type="submit">{{ __('projects.notes.add') }}</flux:button></div>
+                    </form>
+                </x-card>
             @endif
         </div>
 
@@ -212,6 +241,11 @@
                         <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('projects.show.no_transitions') }}</p>
                     @else
                         <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">{{ __('projects.show.move_to') }}</p>
+                        <flux:field class="mb-4">
+                            <flux:label>{{ __('projects.show.status_reason') }}</flux:label>
+                            <flux:textarea wire:model="statusReason" rows="2" />
+                            <flux:error name="statusReason" />
+                        </flux:field>
                         <div class="flex flex-wrap gap-2">
                             @foreach ($transitions as $next)
                                 @if ($next === $cancelled)
@@ -229,10 +263,18 @@
             @endif
 
             <x-card :title="__('projects.show.team_card')">
-                @if ($project->staff->isEmpty())
+                @if ($projectAdmins->isEmpty() && $project->staff->isEmpty())
                     <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('projects.show.no_staff') }}</p>
                 @else
                     <ul class="divide-y divide-slate-200 dark:divide-slate-800">
+                        @foreach ($projectAdmins as $member)
+                            <li wire:key="admin-{{ $member->id }}" class="flex items-center justify-between gap-2 py-2 text-sm">
+                                <div>
+                                    <span class="font-medium text-slate-900 dark:text-slate-50">{{ $member->name }}</span>
+                                    <span class="block text-xs text-slate-600 dark:text-slate-400">{{ $member->role->label() }}</span>
+                                </div>
+                            </li>
+                        @endforeach
                         @foreach ($project->staff as $member)
                             <li wire:key="staff-{{ $member->id }}" class="flex items-center justify-between gap-2 py-2 text-sm">
                                 <div>

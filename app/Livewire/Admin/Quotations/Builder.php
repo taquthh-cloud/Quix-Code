@@ -8,7 +8,9 @@ use App\Models\Project;
 use App\Models\Quotation;
 use App\Services\QuotationService;
 use App\Support\Money;
+use App\Support\PaymentTerms;
 use App\Support\QuotationCalculator;
+use App\Support\TaxSettings;
 use DomainException;
 use Flux\Flux;
 use Illuminate\View\View;
@@ -43,7 +45,17 @@ class Builder extends Component
 
     public string $margin_percent = '20';
 
+    /** Diskon nominal (satuan utama), dikurangkan sebelum PPN. */
+    public string $discount = '0';
+
+    /** Kenakan PPN dengan tarif dari Pengaturan (T3-03); tarif disalin ke quotation saat disimpan. */
+    public bool $apply_tax = false;
+
+    /** '50' (50-50), '30' (30-40-30), atau 'custom' (isi custom_terms). */
     public string $dp_percent = '50';
+
+    /** Persen per termin dipisah koma, mis. "25, 25, 50"; total wajib 100. */
+    public string $custom_terms = '';
 
     public string $valid_until = '';
 
@@ -66,6 +78,7 @@ class Builder extends Component
             }
 
             $this->items = [$this->blankItem()];
+            $this->apply_tax = $this->taxRateBp() > 0;
             $this->valid_until = now()->addDays(14)->toDateString();
 
             return;
@@ -83,7 +96,9 @@ class Builder extends Component
         ])->all();
         $this->operational_cost = Money::of($record->operational_cost, $record->currency)->toMajorString();
         $this->margin_percent = rtrim(rtrim((string) $record->margin_percent, '0'), '.') ?: '0';
-        $this->dp_percent = (string) $record->dp_percent;
+        $this->discount = Money::of((int) $record->discount_amount, $record->currency)->toMajorString();
+        $this->apply_tax = (int) $record->tax_bp > 0;
+        $this->loadTerms($record);
         $this->valid_until = $record->valid_until?->format('Y-m-d') ?? '';
     }
 
@@ -99,6 +114,38 @@ class Builder extends Component
         return $this->quotationId
             ? Quotation::query()->where('project_id', $this->projectId)->findOrFail($this->quotationId)
             : null;
+    }
+
+    private function loadTerms(Quotation $record): void
+    {
+        $bps = $record->termBps();
+        $matched = collect([50, 30])->first(fn (int $key) => PaymentTerms::preset($key) === $bps);
+
+        if ($matched !== null) {
+            $this->dp_percent = (string) $matched;
+
+            return;
+        }
+
+        $this->dp_percent = 'custom';
+        $this->custom_terms = implode(', ', array_map(
+            fn (int $bp) => rtrim(rtrim(QuotationCalculator::bpToPercent($bp), '0'), '.'),
+            $bps,
+        ));
+    }
+
+    /** @return list<int>|null null bila isian custom salah format. */
+    private function selectedTerms(): ?array
+    {
+        return $this->dp_percent === 'custom'
+            ? PaymentTerms::parseCustom($this->custom_terms)
+            : PaymentTerms::preset((int) $this->dp_percent);
+    }
+
+    /** Tarif PPN dari Pengaturan dalam basis point (0 bila belum diatur). */
+    public function taxRateBp(): int
+    {
+        return TaxSettings::rateBp();
     }
 
     private function isEditable(): bool
@@ -225,6 +272,7 @@ class Builder extends Component
 
         $this->margin_percent = trim($this->margin_percent);
         $this->operational_cost = trim($this->operational_cost) === '' ? '0' : trim($this->operational_cost);
+        $this->discount = trim($this->discount) === '' ? '0' : trim($this->discount);
 
         $this->validate([
             'items' => ['required', 'array', 'min:1', 'max:'.self::MAX_ITEMS],
@@ -234,12 +282,16 @@ class Builder extends Component
             'items.*.rate' => ['bail', 'required', 'regex:/^\d{1,8}(\.\d{1,2})?$/'],
             'operational_cost' => ['bail', 'required', 'regex:/^\d{1,12}(\.\d{1,2})?$/'],
             'margin_percent' => ['bail', 'required', 'regex:/^\d{1,3}(\.\d{1,2})?$/', 'numeric', 'between:0,100'],
-            'dp_percent' => ['required', 'in:'.implode(',', Quotation::DP_OPTIONS)],
+            'discount' => ['bail', 'required', 'regex:/^\d{1,12}(\.\d{1,2})?$/'],
+            'apply_tax' => ['boolean'],
+            'dp_percent' => ['required', 'in:'.implode(',', [...Quotation::DP_OPTIONS, 'custom'])],
+            'custom_terms' => ['exclude_unless:dp_percent,custom', 'required', 'string', 'max:60'],
             'valid_until' => ['nullable', 'date', 'after_or_equal:today'],
         ], [
             'items.*.hours.regex' => __('quotations.errors.invalid_hours'),
             'items.*.rate.regex' => __('quotations.errors.invalid_amount'),
             'operational_cost.regex' => __('quotations.errors.invalid_amount'),
+            'discount.regex' => __('quotations.errors.invalid_amount'),
             'margin_percent.regex' => __('quotations.errors.invalid_percent'),
         ], $this->validationAttributes());
 
@@ -272,6 +324,21 @@ class Builder extends Component
             $operational = 0;
         }
 
+        try {
+            $discount = Money::fromMajor($this->discount, $currency)->amount;
+        } catch (InvalidArgumentException) {
+            $this->addError('discount', __('quotations.errors.invalid_amount'));
+            $failed = true;
+            $discount = 0;
+        }
+
+        $terms = $this->selectedTerms();
+
+        if ($terms === null || ! PaymentTerms::isValid($terms)) {
+            $this->addError('custom_terms', __('quotations.errors.invalid_terms'));
+            $failed = true;
+        }
+
         if ($failed) {
             return null;
         }
@@ -280,7 +347,10 @@ class Builder extends Component
             $saved = app(QuotationService::class)->saveDraft($project, $this->quotation, [
                 'operational_cost' => $operational,
                 'margin_percent' => $this->margin_percent,
-                'dp_percent' => (int) $this->dp_percent,
+                'discount_amount' => $discount,
+                'tax_bp' => $this->apply_tax ? $this->taxRateBp() : 0,
+                'dp_percent' => intdiv($terms[0], 100),
+                'payment_terms' => $terms,
                 'valid_until' => $this->valid_until !== '' ? $this->valid_until : null,
             ], $lines);
         } catch (DomainException $e) {
@@ -305,7 +375,9 @@ class Builder extends Component
             'items.*.rate' => __('quotations.builder.rate'),
             'operational_cost' => __('quotations.builder.operational'),
             'margin_percent' => __('quotations.builder.margin'),
+            'discount' => __('quotations.builder.discount'),
             'dp_percent' => __('quotations.builder.dp'),
+            'custom_terms' => __('quotations.builder.custom_terms'),
             'valid_until' => __('quotations.builder.valid_until'),
         ];
     }
@@ -314,7 +386,7 @@ class Builder extends Component
      * Pratinjau total dari isian saat ini. Isian yang belum valid dihitung 0, tanpa galat:
      * validasi sebenarnya dilakukan saat simpan.
      *
-     * @return array{amounts: list<int>, subtotal: int, operational: int, margin: int, total: int, dp: int}
+     * @return array{amounts: list<int>, subtotal: int, operational: int, margin: int, discount: int, taxable: int, tax_bp: int, tax: int, total: int, dp: int, terms: list<array{bp: int, amount: int}>}
      */
     #[Computed]
     public function totals(): array
@@ -326,17 +398,36 @@ class Builder extends Component
             'rate' => $this->tryMinor((string) ($item['rate'] ?? ''), $currency),
         ], array_values($this->items));
 
-        $margin = preg_match('/^\d{1,3}(\.\d{1,2})?$/', trim($this->margin_percent)) ? min(100, (float) $this->margin_percent) : 0;
+        $marginInput = trim($this->margin_percent);
+        $margin = '0';
+
+        if (preg_match('/^\d{1,3}(\.\d{1,2})?$/', $marginInput) === 1) {
+            [$whole, $fraction] = array_pad(explode('.', $marginInput, 2), 2, '');
+            $margin = (int) $whole > 100 || ((int) $whole === 100 && preg_match('/[1-9]/', $fraction) === 1)
+                ? '100'
+                : $marginInput;
+        }
+
+        $operational = $this->tryMinor($this->operational_cost, $currency);
+
+        // Pratinjau tidak melempar galat: diskon dibatasi sampai basis + margin.
+        $preview = QuotationCalculator::calculate($currency, $lines, $operational, $margin);
+        $discount = min($this->tryMinor($this->discount, $currency), $preview['taxable']);
 
         $calc = QuotationCalculator::calculate(
             $currency,
             $lines,
-            $this->tryMinor($this->operational_cost, $currency),
-            (string) $margin,
+            $operational,
+            $margin,
+            $discount,
+            $this->apply_tax ? $this->taxRateBp() : 0,
         );
 
-        $dp = in_array((int) $this->dp_percent, Quotation::DP_OPTIONS, true) ? (int) $this->dp_percent : 50;
-        $calc['dp'] = Money::of($calc['total'], $currency)->percent($dp)->amount;
+        $terms = $this->selectedTerms();
+        $terms = $terms !== null && PaymentTerms::isValid($terms) ? $terms : PaymentTerms::preset(50);
+        $amounts = PaymentTerms::allocate(Money::of($calc['total'], $currency), $terms);
+        $calc['terms'] = array_map(fn (int $bp, Money $m) => ['bp' => $bp, 'amount' => $m->amount], $terms, $amounts);
+        $calc['dp'] = $amounts[0]->amount;
 
         return $calc;
     }

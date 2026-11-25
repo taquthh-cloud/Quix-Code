@@ -5,11 +5,16 @@
             <p class="text-sm text-slate-600 dark:text-slate-400">{{ __('projects.subtitle') }}</p>
         </div>
 
-        @can('create', \App\Models\Project::class)
-            <flux:button variant="primary" icon="plus" :href="route('admin.projects.create')" wire:navigate>
-                {{ __('projects.new') }}
-            </flux:button>
-        @endcan
+        <div class="flex flex-wrap gap-2">
+            @can('admin')
+                <flux:button variant="ghost" :href="route('admin.exports', ['type' => 'projects', 'q' => $search, 'status' => $status])">{{ __('admin.search_page.export_projects') }}</flux:button>
+            @endcan
+            @can('create', \App\Models\Project::class)
+                <flux:button variant="primary" icon="plus" :href="route('admin.projects.create')" wire:navigate>
+                    {{ __('projects.new') }}
+                </flux:button>
+            @endcan
+        </div>
     </div>
 
     @if (session('status'))

@@ -83,8 +83,12 @@ class ProjectPolicy
     {
         $final = $project->invoices()->where('type', InvoiceType::Final->value);
 
-        $hasPaid = (clone $final)->where('status', InvoiceStatus::Paid->value)->exists();
+        $hasPaid = (clone $final)
+            ->where('status', InvoiceStatus::Paid->value)
+            ->whereColumn('paid_amount', '>=', 'amount')
+            ->exists();
         $hasOutstanding = (clone $final)->whereIn('status', [
+            InvoiceStatus::Sent->value,
             InvoiceStatus::Unpaid->value,
             InvoiceStatus::AwaitingVerification->value,
         ])->exists();

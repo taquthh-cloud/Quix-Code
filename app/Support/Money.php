@@ -14,8 +14,7 @@ final readonly class Money
     public function __construct(
         public int $amount,
         public Currency $currency,
-    ) {
-    }
+    ) {}
 
     public static function of(int $minorUnits, Currency|string $currency): self
     {
@@ -70,16 +69,79 @@ final readonly class Money
         return new self($this->amount - $other->amount, $this->currency);
     }
 
-    /** Kali faktor (mis. jam × rate), dibulatkan ke satuan terkecil (half up). */
-    public function multiply(int|float|string $factor): self
+    /** Kali faktor desimal tanpa aritmetika float, dibulatkan half up. */
+    public function multiply(int|string $factor): self
     {
-        return new self((int) round($this->amount * (float) $factor, 0, PHP_ROUND_HALF_UP), $this->currency);
+        [$numerator, $denominator] = self::decimalRatio($factor);
+
+        return $this->multiplyRatio($numerator, $denominator);
     }
 
-    /** Persentase dari nilai ini (mis. margin 20.5%), dibulatkan half up. */
-    public function percent(int|float|string $percent): self
+    /** Persentase dari nilai ini (mis. margin "20.5"), dibulatkan half up. */
+    public function percent(int|string $percent): self
     {
-        return $this->multiply((float) $percent / 100);
+        [$numerator, $denominator] = self::decimalRatio($percent);
+
+        return $this->multiplyRatio($numerator, $denominator * 100);
+    }
+
+    /** @return array{int, int} */
+    private static function decimalRatio(int|string $value): array
+    {
+        $value = (string) $value;
+
+        if (preg_match('/^(-?)(\d+)(?:\.(\d+))?$/D', $value, $matches) !== 1) {
+            throw new InvalidArgumentException("Faktor desimal tidak valid: {$value}");
+        }
+
+        $fraction = rtrim($matches[3] ?? '', '0');
+        if (strlen($fraction) > 6) {
+            throw new InvalidArgumentException('Maksimal enam digit desimal didukung.');
+        }
+
+        $denominator = 10 ** strlen($fraction);
+        $whole = (int) $matches[2];
+        $fractionValue = $fraction === '' ? 0 : (int) str_pad($fraction, strlen($fraction), '0');
+
+        if ($whole > intdiv(PHP_INT_MAX - $fractionValue, $denominator)) {
+            throw new InvalidArgumentException('Faktor desimal terlalu besar.');
+        }
+
+        $numerator = $whole * $denominator + $fractionValue;
+        if (($matches[1] ?? '') === '-') {
+            $numerator *= -1;
+        }
+
+        return [$numerator, $denominator];
+    }
+
+    private function multiplyRatio(int $numerator, int $denominator): self
+    {
+        if ($denominator <= 0 || $this->amount === PHP_INT_MIN || $numerator === PHP_INT_MIN) {
+            throw new InvalidArgumentException('Rasio uang di luar rentang yang didukung.');
+        }
+
+        $negative = ($this->amount < 0) !== ($numerator < 0);
+        $amount = abs($this->amount);
+        $factor = abs($numerator);
+
+        if ($factor !== 0 && $amount > intdiv(PHP_INT_MAX, $factor)) {
+            throw new InvalidArgumentException('Hasil perhitungan uang terlalu besar.');
+        }
+
+        $scaled = $amount * $factor;
+        $rounded = intdiv($scaled, $denominator);
+        $remainder = $scaled % $denominator;
+
+        if ($remainder >= intdiv($denominator + 1, 2)) {
+            $rounded++;
+        }
+
+        if ($rounded === PHP_INT_MIN && $negative) {
+            throw new InvalidArgumentException('Hasil perhitungan uang terlalu besar.');
+        }
+
+        return new self($negative ? -$rounded : $rounded, $this->currency);
     }
 
     public function equals(self $other): bool

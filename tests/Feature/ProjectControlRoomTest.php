@@ -10,6 +10,8 @@ use App\Livewire\Admin\Projects\Show;
 use App\Models\ActivityLog;
 use App\Models\Project;
 use App\Models\ProjectMilestone;
+use App\Models\Quotation;
+use App\Models\QuotationItem;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -17,9 +19,34 @@ use Livewire\Livewire;
 
 beforeEach(function () {
     app()->setLocale('id');
-    $this->admin = User::factory()->admin()->create();
+    $this->admin = User::factory()->admin()->withTwoFactor()->create();
     $this->staff = User::factory()->staff()->create();
     $this->client = User::factory()->client()->create();
+});
+
+it('admin can add and remove internal project notes while assigned staff cannot', function () {
+    $project = Project::factory()->for($this->client, 'client')->create();
+    $project->staff()->attach($this->staff->id);
+
+    $this->actingAs($this->admin);
+    Livewire::test(Show::class, ['project' => $project->id])
+        ->set('noteBody', 'Follow up on delivery scope')
+        ->call('addNote')
+        ->assertHasNoErrors()
+        ->assertSee('Follow up on delivery scope');
+
+    $note = $project->notes()->firstOrFail();
+    expect($note->user_id)->toBe($this->admin->id);
+
+    $this->actingAs($this->staff);
+    Livewire::test(Show::class, ['project' => $project->id])
+        ->assertDontSee('Follow up on delivery scope')
+        ->call('addNote')
+        ->assertForbidden();
+
+    $this->actingAs($this->admin);
+    Livewire::test(Show::class, ['project' => $project->id])->call('deleteNote', $note->id);
+    expect($project->notes()->count())->toBe(0);
 });
 
 // ------------------------------------------------------------------ daftar
@@ -266,6 +293,8 @@ it('aksi admin ditolak untuk staf walau dipanggil langsung', function () {
 
 it('admin memindah status sesuai urutan dan tercatat; lompat status ditolak', function () {
     $project = Project::factory()->for($this->client, 'client')->create();
+    $quotation = Quotation::factory()->sent()->for($project)->create();
+    QuotationItem::factory()->for($quotation)->create();
 
     $this->actingAs($this->admin);
     $component = Livewire::test(Show::class, ['project' => $project->id]);
@@ -409,7 +438,7 @@ it('milestone baru yang ambangnya sudah tercapai langsung selesai', function () 
     expect($project->milestones()->first()->status)->toBe(MilestoneStatus::Done);
 });
 
-it('validasi milestone: target 0-100 dan penanggung jawab harus staf proyek ini', function () {
+it('validasi milestone: target 0-100, staf harus dari proyek, dan admin dapat menjadi penanggung jawab', function () {
     $project = Project::factory()->active()->for($this->client, 'client')->create();
     $outsider = User::factory()->staff()->create();
 
@@ -421,6 +450,45 @@ it('validasi milestone: target 0-100 dan penanggung jawab harus staf proyek ini'
     Livewire::test(Show::class, ['project' => $project->id])
         ->set('ms_title', 'A')->set('ms_target', '50')->set('ms_assignee', (string) $outsider->id)
         ->call('saveMilestone')->assertHasErrors('ms_assignee');
+
+    expect($project->milestones()->count())->toBe(0);
+});
+
+it('admin dapat ditugaskan sebagai penanggung jawab milestone dan tercantum dalam tim proyek', function () {
+    $project = Project::factory()->active()->for($this->client, 'client')->create();
+    $admin = $this->admin->forceFill(['name' => 'Project Admin']);
+    $admin->save();
+
+    $this->actingAs($admin);
+    $component = Livewire::test(Show::class, ['project' => $project->id])
+        ->set('ms_title', 'Review administrasi')
+        ->set('ms_target', '50')
+        ->set('ms_assignee', (string) $admin->id)
+        ->call('saveMilestone')
+        ->assertHasNoErrors()
+        ->assertSee('Project Admin');
+
+    $milestone = $project->milestones()->firstOrFail();
+    expect($milestone->assigned_to)->toBe($admin->id);
+
+    $admin->forceFill(['is_available_for_projects' => false])->save();
+    $component->call('editMilestone', $milestone->id)
+        ->call('saveMilestone')
+        ->assertHasNoErrors()
+        ->assertSee('Project Admin');
+});
+
+it('admin yang sedang jeda tidak dapat menerima penugasan milestone baru', function () {
+    $project = Project::factory()->active()->for($this->client, 'client')->create();
+    $this->admin->forceFill(['is_available_for_projects' => false])->save();
+
+    $this->actingAs($this->admin);
+    Livewire::test(Show::class, ['project' => $project->id])
+        ->set('ms_title', 'Review administrasi')
+        ->set('ms_target', '50')
+        ->set('ms_assignee', (string) $this->admin->id)
+        ->call('saveMilestone')
+        ->assertHasErrors('ms_assignee');
 
     expect($project->milestones()->count())->toBe(0);
 });

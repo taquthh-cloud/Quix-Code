@@ -12,6 +12,7 @@ enum ProjectStatus: string
     case Deal = 'deal';
     case AwaitingDp = 'awaiting_dp';
     case Active = 'active';
+    case OnHold = 'on_hold';
     case AwaitingFinal = 'awaiting_final';
     case Handover = 'handover';
     case Warranty = 'warranty';
@@ -34,17 +35,22 @@ enum ProjectStatus: string
         $next = match ($this) {
             self::Lead => [self::Quoted],
             self::Quoted => [self::Negotiating, self::Deal],
-            self::Negotiating => [self::Deal],
+            self::Negotiating => [self::Quoted, self::Deal],
             self::Deal => [self::AwaitingDp],
             self::AwaitingDp => [self::Active],
             self::Active => [self::AwaitingFinal],
             self::AwaitingFinal => [self::Handover],
             self::Handover => [self::Warranty],
             self::Warranty => [self::Closed],
+            self::OnHold => [],
             self::Closed, self::Cancelled => [],
         };
 
         if (! $this->isTerminal()) {
+            if ($this !== self::OnHold) {
+                $next[] = self::OnHold;
+            }
+
             $next[] = self::Cancelled;
         }
 
@@ -84,7 +90,7 @@ enum ProjectStatus: string
     {
         return match ($this) {
             self::Lead, self::Quoted => 'slate',
-            self::Negotiating, self::AwaitingDp, self::AwaitingFinal => 'amber',
+            self::Negotiating, self::AwaitingDp, self::AwaitingFinal, self::OnHold => 'amber',
             self::Deal, self::Handover => 'sky',
             self::Active, self::Warranty => 'emerald',
             self::Closed => 'zinc',

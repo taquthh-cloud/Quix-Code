@@ -9,6 +9,7 @@ use App\Enums\UserRole;
 use App\Models\ActivityLog;
 use App\Models\Project;
 use App\Models\ProjectMilestone;
+use App\Models\ProjectNote;
 use App\Models\User;
 use App\Support\ActivityLogger;
 use Flux\Flux;
@@ -40,6 +41,10 @@ class Show extends Component
 
     /** String agar input kosong dari browser tidak menyebabkan TypeError; divalidasi lalu di-cast. */
     public string $progress = '0';
+
+    public string $statusReason = '';
+
+    public string $noteBody = '';
 
     public string $staffId = '';
 
@@ -85,16 +90,23 @@ class Show extends Component
 
         $target = ProjectStatus::tryFrom($to);
 
-        if ($target === null || ! $project->status->canTransitionTo($target)) {
+        $isResume = $project->status === ProjectStatus::OnHold
+            && $project->on_hold_from === $target?->value;
+
+        if ($target === null || (! $isResume && ! $project->status->canTransitionTo($target))) {
             Flux::toast(variant: 'danger', text: __('projects.errors.invalid_transition'));
 
             return;
         }
 
+        if (in_array($target, [ProjectStatus::OnHold, ProjectStatus::Cancelled], true)) {
+            $this->validate(['statusReason' => ['required', 'string', 'max:1000']]);
+        }
+
         try {
             DB::transaction(function () use ($project, $target) {
                 $old = $project->status;
-                $project->transitionTo($target);
+                $project->transitionTo($target, auth()->user(), $this->statusReason ?: null);
 
                 if ($target === ProjectStatus::Closed) {
                     $project->forceFill(['completed_at' => now()])->save();
@@ -109,6 +121,7 @@ class Show extends Component
         }
 
         $this->refreshProject();
+        $this->reset('statusReason');
         Flux::toast(variant: 'success', text: __('projects.toast.status_changed'));
     }
 
@@ -230,8 +243,29 @@ class Show extends Component
             'ms_title' => ['required', 'string', 'max:255'],
             'ms_target' => ['required', 'integer', 'between:0,100'],
             'ms_due' => ['nullable', 'date'],
-            // Penanggung jawab harus staf yang ditugaskan di proyek ini.
-            'ms_assignee' => ['nullable', Rule::exists('project_assignments', 'staff_id')->where('project_id', $project->id)],
+            // Admin yang sedang jeda hanya boleh mempertahankan penugasan milestone yang sudah dimilikinya.
+            'ms_assignee' => [
+                'nullable',
+                Rule::exists('users', 'id')
+                    ->whereNull('deleted_at')
+                    ->where(fn ($query) => $query->where(function ($query) use ($project, $milestone) {
+                        $query->where(function ($query) use ($milestone) {
+                            $query->where('role', UserRole::Admin->value)
+                                ->where('is_active', true)
+                                ->where(function ($availability) use ($milestone) {
+                                    $availability->where('is_available_for_projects', true);
+                                    if ($milestone?->assigned_to) {
+                                        $availability->orWhere('id', $milestone->assigned_to);
+                                    }
+                                });
+                        })->orWhere(function ($query) use ($project) {
+                            $query->where('role', UserRole::Staff->value)
+                                ->whereIn('id', DB::table('project_assignments')
+                                    ->select('staff_id')
+                                    ->where('project_id', $project->id));
+                        });
+                    })),
+            ],
         ], [], [
             'ms_title' => __('projects.fields.ms_title'),
             'ms_target' => __('projects.fields.ms_target'),
@@ -332,9 +366,16 @@ class Show extends Component
             return;
         }
 
-        $milestone->status = $target;
-        $milestone->completed_at = $target === MilestoneStatus::Done ? now() : null;
-        $milestone->save();
+        $from = $milestone->status;
+        if ($from !== $target) {
+            DB::transaction(function () use ($milestone, $from, $target): void {
+                $milestone->forceFill([
+                    'status' => $target,
+                    'completed_at' => $target === MilestoneStatus::Done ? now() : null,
+                ])->save();
+                ActivityLogger::changed(ActivityAction::MilestoneStatusChanged, $milestone, $from, $target);
+            });
+        }
 
         $this->refreshProject();
         Flux::toast(variant: 'success', text: __('projects.toast.milestone_status'));
@@ -351,6 +392,40 @@ class Show extends Component
         session()->flash('status', __('projects.toast.deleted'));
 
         $this->redirectRoute('admin.projects.index', navigate: true);
+    }
+
+    // ------------------------------------------------------------------ catatan internal
+
+    public function addNote(): void
+    {
+        abort_unless(auth()->user()->isAdmin(), 403);
+        $data = $this->validate([
+            'noteBody' => ['required', 'string', 'max:5000'],
+        ]);
+        $project = $this->project;
+
+        DB::transaction(function () use ($project, $data): void {
+            $note = ProjectNote::query()->create([
+                'project_id' => $project->id,
+                'user_id' => auth()->id(),
+                'body' => trim($data['noteBody']),
+            ]);
+            ActivityLogger::log(ActivityAction::ProjectNoteCreated, $note, ['project_id' => $project->id]);
+        });
+
+        $this->reset('noteBody');
+        Flux::toast(variant: 'success', text: __('projects.notes.saved'));
+    }
+
+    public function deleteNote(int $noteId): void
+    {
+        abort_unless(auth()->user()->isAdmin(), 403);
+        $note = ProjectNote::query()
+            ->where('project_id', $this->project->id)
+            ->findOrFail($noteId);
+        $note->delete();
+
+        Flux::toast(variant: 'success', text: __('projects.notes.deleted'));
     }
 
     // ------------------------------------------------------------------ util
@@ -392,9 +467,33 @@ class Show extends Component
         $project->load([
             $user->isAdmin() ? 'client:id,name,email,whatsapp' : 'client:id,name',
             'assignments:id,project_id,staff_id,task_role',
-            'staff:id,name',
+            'staff:id,name,role',
             'milestones.assignee:id,name',
+            'milestones.acceptances.client:id,name',
         ]);
+
+        $assignedAdminIds = $project->milestones->pluck('assigned_to')->filter()->unique()->values();
+        $projectAdmins = User::query()
+            ->where('role', UserRole::Admin->value)
+            ->whereIn('id', $assignedAdminIds)
+            ->orderBy('name')
+            ->get(['id', 'name', 'role']);
+        $currentMilestoneAssigneeId = $this->editingMilestoneId
+            ? $project->milestones->firstWhere('id', $this->editingMilestoneId)?->assigned_to
+            : null;
+        $milestoneAssignees = User::query()
+            ->where('role', UserRole::Admin->value)
+            ->where('is_active', true)
+            ->where(function ($query) use ($currentMilestoneAssigneeId) {
+                $query->where('is_available_for_projects', true);
+                if ($currentMilestoneAssigneeId) {
+                    $query->orWhere('id', $currentMilestoneAssigneeId);
+                }
+            })
+            ->get(['id', 'name', 'role'])
+            ->concat($project->staff)
+            ->sortBy('name')
+            ->values();
 
         // Semua pemeriksaan hak geser memakai Policy yang sama, tanpa query tambahan per baris.
         $workable = $user->isAdmin() || $project->status->isWorkable();
@@ -415,14 +514,21 @@ class Show extends Component
 
         return view('livewire.admin.projects.show', [
             'project' => $project,
+            'projectAdmins' => $projectAdmins,
+            'milestoneAssignees' => $milestoneAssignees,
             'movable' => $movable,
-            'transitions' => $isAdmin ? $project->status->allowedTransitions() : [],
+            'transitions' => $isAdmin
+                ? ($project->status === ProjectStatus::OnHold && $project->on_hold_from
+                    ? [ProjectStatus::from($project->on_hold_from), ProjectStatus::Cancelled]
+                    : $project->status->allowedTransitions())
+                : [],
             'availableStaff' => $isAdmin
                 ? User::query()->where('role', UserRole::Staff->value)
                     ->whereNotIn('id', $project->assignments->pluck('staff_id'))
                     ->orderBy('name')->get(['id', 'name'])
                 : collect(),
             'activities' => $activities,
+            'notes' => $isAdmin ? $project->notes()->with('author:id,name')->limit(20)->get() : collect(),
             'descriptions' => $activities->mapWithKeys(fn (ActivityLog $log) => [$log->id => $this->describe($log)]),
             'milestoneStatuses' => MilestoneStatus::cases(),
         ])->title($project->title);

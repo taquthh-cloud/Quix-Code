@@ -3,7 +3,8 @@
 {{-- Rincian penawaran. Klien tidak melihat operasional dan margin terpisah: keduanya digabung ($internal = false). --}}
 @php
     $money = fn (int $amount) => \App\Support\Money::of($amount, $quotation->currency)->format();
-    $overhead = $quotation->total - $quotation->subtotal;
+    // Klien melihat operasional + margin digabung (tanpa diskon/PPN, yang ditampilkan terpisah).
+    $overhead = $quotation->operational_cost + $quotation->marginMoney()->amount;
 @endphp
 
 <div {{ $attributes->class('flex flex-col gap-4') }}>
@@ -19,6 +20,21 @@
             <span>{{ __('quotations.accepted_at') }} {{ $quotation->accepted_at->translatedFormat('d M Y H:i') }}</span>
         @endif
     </div>
+
+    @if ($quotation->isExpiringSoon())
+        @php($daysLeft = $quotation->daysLeft())
+        <p class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200" role="status" data-testid="expiry-notice">
+            {{ $daysLeft === 0 ? __('quotations.expires_today') : trans_choice('quotations.expires_in', $daysLeft, ['count' => $daysLeft]) }}
+        </p>
+    @elseif (! $internal && $quotation->status === \App\Enums\QuotationStatus::Superseded)
+        <p class="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800/50 dark:text-slate-300" data-testid="superseded-notice">
+            {{ __('quotations.superseded_hint') }}
+        </p>
+    @elseif (! $internal && $quotation->status === \App\Enums\QuotationStatus::Expired)
+        <p class="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200" data-testid="expired-notice">
+            {{ __('quotations.expired_hint') }}
+        </p>
+    @endif
 
     <x-table>
         <x-slot:head>
@@ -59,10 +75,42 @@
             <dd class="text-end tabular-nums">{{ $money($overhead) }}</dd>
         @endif
 
+        @if ($quotation->discount_amount > 0)
+            <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.builder.discount') }}</dt>
+            <dd class="text-end tabular-nums">&minus; {{ $money($quotation->discount_amount) }}</dd>
+        @endif
+        @if ($quotation->tax_bp > 0)
+            <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.tax', ['rate' => $quotation->taxPercentLabel()]) }}</dt>
+            <dd class="text-end tabular-nums">{{ $money($quotation->tax_amount) }}</dd>
+        @endif
+
         <dt class="border-t border-slate-200 pt-2 font-semibold text-slate-900 dark:border-slate-800 dark:text-slate-50">{{ __('quotations.total') }}</dt>
         <dd class="border-t border-slate-200 pt-2 text-end text-base font-semibold tabular-nums text-slate-900 dark:border-slate-800 dark:text-slate-50">{{ $money($quotation->total) }}</dd>
 
-        <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.dp_due', ['percent' => $quotation->dp_percent]) }}</dt>
-        <dd class="text-end tabular-nums">{{ $quotation->dpMoney()->format() }}</dd>
+        @php($terms = $quotation->termMoney())
+        @php($bps = $quotation->termBps())
+        <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.dp_due', ['percent' => rtrim(rtrim(\App\Support\QuotationCalculator::bpToPercent($bps[0]), '0'), '.') ?: '0']) }}</dt>
+        <dd class="text-end tabular-nums">{{ $terms[0]->format() }}</dd>
+        @foreach (array_slice($terms, 1, null, true) as $i => $term)
+            <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.term_n', ['n' => $i + 1, 'percent' => rtrim(rtrim(\App\Support\QuotationCalculator::bpToPercent($bps[$i]), '0'), '.') ?: '0']) }}</dt>
+            <dd class="text-end tabular-nums">{{ $term->format() }}</dd>
+        @endforeach
     </dl>
+
+    @if ($internal && $quotation->accepted_at)
+        <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-lg border border-slate-200 p-3 text-xs dark:border-slate-800" data-testid="acceptance-evidence">
+            <dt class="font-medium text-slate-600 dark:text-slate-400">{{ __('quotations.evidence.title') }}</dt>
+            <dd class="text-slate-900 dark:text-slate-50">{{ $quotation->accepted_at->utc()->format('Y-m-d H:i:s') }} UTC</dd>
+            <dt class="text-slate-600 dark:text-slate-400">IP</dt>
+            <dd class="break-all text-slate-900 dark:text-slate-50">{{ $quotation->accepted_ip }}</dd>
+            <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.evidence.user_agent') }}</dt>
+            <dd class="break-all text-slate-900 dark:text-slate-50">{{ $quotation->accepted_user_agent ?? '-' }}</dd>
+            <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.evidence.terms_version') }}</dt>
+            <dd class="text-slate-900 dark:text-slate-50">{{ $quotation->terms_version ?? '-' }}</dd>
+            <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.evidence.hash') }}</dt>
+            <dd class="break-all font-mono text-slate-900 dark:text-slate-50">{{ $quotation->accepted_snapshot_hash ?? '-' }}</dd>
+            <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.evidence.integrity') }}</dt>
+            <dd class="text-slate-900 dark:text-slate-50">{{ $quotation->accepted_snapshot_hash === null ? '-' : ($quotation->hasIntactSnapshot() ? __('quotations.evidence.intact') : __('quotations.evidence.changed')) }}</dd>
+        </dl>
+    @endif
 </div>

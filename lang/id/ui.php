@@ -11,6 +11,11 @@ return [
     'back' => 'Kembali',
     'search' => 'Cari',
     'actions' => 'Aksi',
+    'security' => [
+        'heading' => 'Sesi aktif',
+        'logout_other_devices' => 'Keluarkan perangkat lain',
+        'devices_logged_out' => 'Perangkat lain berhasil dikeluarkan.',
+    ],
     'progress' => 'Progres',
     'empty_title' => 'Belum ada data',
     'empty_description' => 'Data akan muncul di sini setelah ada yang ditambahkan.',

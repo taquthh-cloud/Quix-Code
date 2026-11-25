@@ -1,5 +1,5 @@
-<x-card :title="__('chat.title')" :padded="false" wire:poll.5s>
-    <div x-data x-init="$nextTick(() => { $refs.log.scrollTop = $refs.log.scrollHeight })"
+<x-card :title="__('chat.title')" :padded="false">
+    <div wire:poll.{{ $pollSeconds }}s.visible x-data x-init="$nextTick(() => { $refs.log.scrollTop = $refs.log.scrollHeight })"
          x-on:chat-sent.window="$nextTick(() => { $refs.log.scrollTop = $refs.log.scrollHeight })">
         <div x-ref="log" class="flex max-h-96 min-h-48 flex-col gap-3 overflow-y-auto p-card" role="log" aria-live="polite">
             @forelse ($messages as $chat)

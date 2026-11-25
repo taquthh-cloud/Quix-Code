@@ -36,6 +36,8 @@ class Form extends Component
 
     public string $client_whatsapp = '';
 
+    public string $lead_source = 'manual';
+
     public string $title = '';
 
     public string $description = '';
@@ -61,6 +63,7 @@ class Form extends Component
         $this->authorize('update', $model);
 
         $this->projectId = $model->id;
+        $this->lead_source = $model->lead_source ?: 'manual';
         $this->client_id = (string) $model->client_id;
         $this->title = $model->title;
         $this->description = (string) $model->description;
@@ -83,7 +86,12 @@ class Form extends Component
             'client_email' => $this->newClient
                 ? ['required', 'email:rfc', 'max:255', Rule::unique('users', 'email')]
                 : ['nullable'],
-            'client_whatsapp' => $this->newClient ? ['nullable', 'string', 'max:20'] : ['nullable'],
+            'client_whatsapp' => $this->newClient && trim($this->client_whatsapp) !== ''
+                ? ['string', 'max:20', Rule::unique('users', 'whatsapp')->where('role', UserRole::Client->value)]
+                : ['nullable', 'string', 'max:20'],
+            'lead_source' => $this->projectId === null
+                ? ['required', Rule::in(['manual', 'referral', 'instagram', 'website', 'whatsapp', 'other'])]
+                : ['nullable', Rule::in(['manual', 'referral', 'instagram', 'website', 'whatsapp', 'other'])],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'currency' => ['required', Rule::enum(Currency::class)],
@@ -105,7 +113,7 @@ class Form extends Component
     /** @return array<string, string> */
     protected function validationAttributes(): array
     {
-        return collect(['client_id', 'client_name', 'client_email', 'client_whatsapp', 'title', 'description',
+        return collect(['client_id', 'client_name', 'client_email', 'client_whatsapp', 'lead_source', 'title', 'description',
             'currency', 'budget_reference', 'final_price', 'github_repo'])
             ->mapWithKeys(fn (string $f) => [$f => __("projects.fields.{$f}")])
             ->all();
@@ -118,6 +126,7 @@ class Form extends Component
 
         $this->github_repo = trim($this->github_repo);
         $this->client_email = Str::lower(trim($this->client_email));
+        $this->client_whatsapp = trim($this->client_whatsapp);
         $this->validate();
 
         // Mata uang proyek yang sudah deal tidak boleh diubah, apa pun yang dikirim browser.
@@ -144,6 +153,7 @@ class Form extends Component
         $saved = DB::transaction(function () use ($project, $attributes, $currency, $budget, $final) {
             if ($project === null) {
                 $attributes['client_id'] = $this->resolveClientId();
+                $attributes['lead_source'] = $this->lead_source;
                 $project = Project::create($attributes);
                 ActivityLogger::log(ActivityAction::ProjectCreated, $project, ['title' => $project->title]);
 

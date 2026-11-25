@@ -9,13 +9,14 @@ use App\Models\ProjectMilestone;
 use App\Models\Quotation;
 use App\Models\RevisionTicket;
 use App\Models\User;
+use Illuminate\Database\Eloquent\MissingAttributeException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->admin = User::factory()->admin()->create();
+    $this->admin = User::factory()->admin()->withTwoFactor()->create();
     $this->staff = User::factory()->staff()->create();       // ditugaskan di proyek A
     $this->otherStaff = User::factory()->staff()->create();  // tidak ditugaskan
     $this->clientA = User::factory()->client()->create();
@@ -107,7 +108,7 @@ it('harga disembunyikan dari staf di level query, bukan hanya tampilan', functio
     expect($forAdmin->final_price)->toBe(25_000_000)
         ->and($forStaff->getAttributes())->not->toHaveKey('final_price')
         ->and($forStaff->getAttributes())->not->toHaveKey('budget_reference')
-        ->and($forStaff->final_price)->toBeNull()
+        ->and(fn () => $forStaff->final_price)->toThrow(MissingAttributeException::class)
         ->and($forStaff->toArray())->not->toHaveKey('final_price')
         ->and(Invoice::visibleTo($this->staff)->count())->toBe(0)
         ->and(Quotation::visibleTo($this->staff)->count())->toBe(0)
@@ -193,7 +194,7 @@ it('arsip handover tidak bisa diunduh sebelum invoice final lunas', function () 
     $final->forceFill(['status' => InvoiceStatus::AwaitingVerification])->save();
     expect($this->clientA->can('downloadHandover', $this->projectA))->toBeFalse();
 
-    $final->forceFill(['status' => InvoiceStatus::Paid])->save();
+    $final->forceFill(['status' => InvoiceStatus::Paid, 'paid_amount' => $final->amount])->save();
     expect($this->clientA->can('downloadHandover', $this->projectA))->toBeTrue()
         ->and($this->clientB->can('downloadHandover', $this->projectA))->toBeFalse()
         ->and($this->staff->can('downloadHandover', $this->projectA))->toBeFalse();

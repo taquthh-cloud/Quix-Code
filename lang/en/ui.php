@@ -11,6 +11,11 @@ return [
     'back' => 'Back',
     'search' => 'Search',
     'actions' => 'Actions',
+    'security' => [
+        'heading' => 'Active sessions',
+        'logout_other_devices' => 'Log out other devices',
+        'devices_logged_out' => 'Other devices have been logged out.',
+    ],
     'progress' => 'Progress',
     'empty_title' => 'No data yet',
     'empty_description' => 'Data will show up here once something is added.',
