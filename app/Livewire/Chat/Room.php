@@ -10,6 +10,7 @@ use App\Support\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\View\View;
+use InvalidArgumentException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -67,8 +68,14 @@ class Room extends Component
                 $fresh = Project::query()->lockForUpdate()->find($project->id);
 
                 if ($user->isClient() && $fresh?->status === ProjectStatus::Quoted) {
-                    $fresh->transitionTo(ProjectStatus::Negotiating, $user);
-                    ActivityLogger::changed(ActivityAction::StatusChanged, $fresh, ProjectStatus::Quoted, ProjectStatus::Negotiating, $user);
+                    // Syarat transisi: penawaran terbaru masih terkirim dan berlaku. Bila sudah kedaluwarsa
+                    // (T3-06) atau ada draf versi baru, pesan tetap tersimpan dan status proyek tidak berubah.
+                    try {
+                        $fresh->transitionTo(ProjectStatus::Negotiating, $user);
+                        ActivityLogger::changed(ActivityAction::StatusChanged, $fresh, ProjectStatus::Quoted, ProjectStatus::Negotiating, $user);
+                    } catch (InvalidArgumentException) {
+                        // dibiarkan: negosiasi lewat chat tetap boleh
+                    }
                 }
             });
         }, 60);

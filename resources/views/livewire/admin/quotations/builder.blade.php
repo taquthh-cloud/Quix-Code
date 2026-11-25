@@ -80,18 +80,26 @@
                     <div class="grid gap-4 sm:grid-cols-2">
                         <flux:input wire:model.live.debounce.500ms="operational_cost" inputmode="decimal" :label="__('quotations.builder.operational')" />
                         <flux:input wire:model.live.debounce.500ms="margin_percent" inputmode="decimal" :label="__('quotations.builder.margin')" />
+                        <flux:input wire:model.live.debounce.500ms="discount" inputmode="decimal" :label="__('quotations.builder.discount')" />
+                        <flux:checkbox wire:model.live="apply_tax" :label="__('quotations.builder.apply_tax', ['rate' => rtrim(rtrim(\App\Support\QuotationCalculator::bpToPercent($this->taxRateBp()), '0'), '.') ?: '0'])" class="self-end" />
 
                         <flux:select wire:model.live="dp_percent" :label="__('quotations.builder.dp')">
                             @foreach ($dpOptions as $option)
                                 <flux:select.option :value="(string) $option">{{ __('quotations.builder.dp_option_'.$option) }}</flux:select.option>
                             @endforeach
+                            <flux:select.option value="custom">{{ __('quotations.builder.dp_option_custom') }}</flux:select.option>
                         </flux:select>
+                        @if ($dp_percent === 'custom')
+                            <flux:input wire:model.live.debounce.500ms="custom_terms" inputmode="decimal" :label="__('quotations.builder.custom_terms')" placeholder="25, 25, 50" />
+                        @endif
                         <flux:input wire:model="valid_until" type="date" :label="__('quotations.builder.valid_until')" />
                     </div>
                     <div class="mt-2 flex flex-col gap-1">
                         <flux:error name="operational_cost" />
                         <flux:error name="margin_percent" />
+                        <flux:error name="discount" />
                         <flux:error name="dp_percent" />
+                        <flux:error name="custom_terms" />
                         <flux:error name="valid_until" />
                     </div>
                 </x-card>
@@ -104,10 +112,22 @@
                         <dd class="text-end tabular-nums">{{ \App\Support\Money::of($totals['operational'], $project->currency)->format() }}</dd>
                         <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.builder.margin') }}</dt>
                         <dd class="text-end tabular-nums">{{ \App\Support\Money::of($totals['margin'], $project->currency)->format() }}</dd>
+                        @if ($totals['discount'] > 0)
+                            <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.builder.discount') }}</dt>
+                            <dd class="text-end tabular-nums">&minus; {{ \App\Support\Money::of($totals['discount'], $project->currency)->format() }}</dd>
+                        @endif
+                        @if ($totals['tax_bp'] > 0)
+                            <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.tax', ['rate' => rtrim(rtrim(\App\Support\QuotationCalculator::bpToPercent($totals['tax_bp']), '0'), '.') ?: '0']) }}</dt>
+                            <dd class="text-end tabular-nums">{{ \App\Support\Money::of($totals['tax'], $project->currency)->format() }}</dd>
+                        @endif
                         <dt class="border-t border-slate-200 pt-2 font-semibold text-slate-900 dark:border-slate-800 dark:text-slate-50">{{ __('quotations.total') }}</dt>
                         <dd class="border-t border-slate-200 pt-2 text-end text-lg font-semibold tabular-nums text-slate-900 dark:border-slate-800 dark:text-slate-50">{{ \App\Support\Money::of($totals['total'], $project->currency)->format() }}</dd>
                         <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.builder.dp_amount') }}</dt>
                         <dd class="text-end tabular-nums">{{ \App\Support\Money::of($totals['dp'], $project->currency)->format() }}</dd>
+                        @foreach (array_slice($totals['terms'], 1) as $n => $term)
+                            <dt class="text-slate-600 dark:text-slate-400">{{ __('quotations.term_n', ['n' => $n + 2, 'percent' => rtrim(rtrim(\App\Support\QuotationCalculator::bpToPercent($term['bp']), '0'), '.') ?: '0']) }}</dt>
+                            <dd class="text-end tabular-nums">{{ \App\Support\Money::of($term['amount'], $project->currency)->format() }}</dd>
+                        @endforeach
                     </dl>
                     <p class="mt-4 text-xs text-slate-600 dark:text-slate-400">{{ __('quotations.builder.client_hint') }}</p>
                 </x-card>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\InvoicePrintController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProjectFileController;
+use App\Http\Controllers\QuotationPrintController;
 use App\Http\Controllers\PaymentProofController;
 use App\Http\Middleware\RequireAdminTwoFactor;
 use App\Http\Controllers\Portal\OverviewController;
@@ -37,6 +38,9 @@ Route::get('files/{file}', ProjectFileController::class)
 Route::get('invoices/{invoice}/print', InvoicePrintController::class)
     ->middleware(['auth', 'verified'])
     ->name('admin.invoices.print');
+Route::get('quotations/{quotation}/print', QuotationPrintController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('quotations.print');
 Route::get('payments/{payment}/proof', PaymentProofController::class)
     ->middleware(['auth', 'verified'])
     ->name('admin.payments.proof');

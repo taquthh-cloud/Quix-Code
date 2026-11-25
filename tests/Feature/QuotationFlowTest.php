@@ -13,6 +13,7 @@ use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\QuotationService;
 use Illuminate\Support\Facades\DB;
@@ -65,6 +66,176 @@ it('admin menyusun quotation dengan hitungan jam x rate + operasional + margin',
         ->and($quotation->items->pluck('amount')->all())->toBe([1_500_000, 2_500_000])
         ->and($quotation->items->pluck('sort_order')->all())->toBe([0, 1])
         ->and($project->fresh()->status)->toBe(ProjectStatus::Lead); // draf tidak mengubah status
+});
+
+it('builder menerapkan diskon dan PPN dari pengaturan, dan menyimpan margin dalam basis point', function () {
+    Setting::query()->create(['key' => 'tax.rate_bp', 'value' => ['basis_points' => 1100]]);
+    $project = Project::factory()->for($this->client, 'client')->create();
+
+    $this->actingAs($this->admin);
+    Livewire::test(Builder::class, ['project' => $project->id])
+        ->assertSet('apply_tax', true)
+        ->set('items', [
+            ['title' => 'Backend', 'description' => '', 'hours' => '10', 'rate' => '150000'],
+            ['title' => 'Antarmuka', 'description' => '', 'hours' => '12.5', 'rate' => '200000'],
+        ])
+        ->set('operational_cost', '500000')
+        ->set('margin_percent', '20')
+        ->set('discount', '400000')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $quotation = Quotation::firstOrFail();
+
+    expect($quotation->margin_bp)->toBe(2000)
+        ->and($quotation->discount_amount)->toBe(400_000)
+        ->and($quotation->tax_bp)->toBe(1100)
+        ->and($quotation->tax_amount)->toBe(550_000)
+        ->and($quotation->total)->toBe(5_550_000)
+        ->and($quotation->marginMoney()->amount)->toBe(900_000);
+});
+
+it('quotation tanpa PPN bila opsi dimatikan, dan diskon berlebih ditolak', function () {
+    Setting::query()->create(['key' => 'tax.rate_bp', 'value' => ['basis_points' => 1100]]);
+    $project = Project::factory()->for($this->client, 'client')->create();
+    $items = [['title' => 'Backend', 'description' => '', 'hours' => '10', 'rate' => '150000']];
+
+    $this->actingAs($this->admin);
+    Livewire::test(Builder::class, ['project' => $project->id])
+        ->set('items', $items)->set('margin_percent', '0')->set('discount', '99999999')
+        ->call('save');
+
+    expect(Quotation::count())->toBe(0);
+
+    Livewire::test(Builder::class, ['project' => $project->id])
+        ->set('items', $items)->set('margin_percent', '0')->set('discount', '0')->set('apply_tax', false)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $quotation = Quotation::firstOrFail();
+
+    expect($quotation->tax_bp)->toBe(0)->and($quotation->tax_amount)->toBe(0)->and($quotation->total)->toBe(1_500_000);
+});
+
+it('builder menyimpan skema termin kustom dan menolak yang totalnya bukan 100%', function () {
+    $project = Project::factory()->for($this->client, 'client')->create();
+    $items = [['title' => 'Backend', 'description' => '', 'hours' => '10', 'rate' => '150000']];
+
+    $this->actingAs($this->admin);
+    Livewire::test(Builder::class, ['project' => $project->id])
+        ->set('items', $items)->set('margin_percent', '0')
+        ->set('dp_percent', 'custom')->set('custom_terms', '60, 60')
+        ->call('save')
+        ->assertHasErrors('custom_terms');
+
+    expect(Quotation::count())->toBe(0);
+
+    Livewire::test(Builder::class, ['project' => $project->id])
+        ->set('items', $items)->set('margin_percent', '0')
+        ->set('dp_percent', 'custom')->set('custom_terms', '100')
+        ->call('save')
+        ->assertHasErrors('custom_terms');
+
+    Livewire::test(Builder::class, ['project' => $project->id])
+        ->set('items', $items)->set('margin_percent', '0')
+        ->set('dp_percent', 'custom')->set('custom_terms', '20, 30, 50')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $quotation = Quotation::firstOrFail();
+
+    expect($quotation->payment_terms)->toBe([2000, 3000, 5000])
+        ->and($quotation->dp_percent)->toBe(20)
+        ->and(array_map(fn ($m) => $m->amount, $quotation->termMoney()))->toBe([300_000, 450_000, 750_000]);
+
+    Livewire::test(Builder::class, ['project' => $project->id, 'quotation' => $quotation->id])
+        ->assertSet('dp_percent', 'custom')
+        ->assertSet('custom_terms', '20, 30, 50');
+});
+
+it('quotation lama tanpa skema tersimpan memakai preset dari dp_percent', function () {
+    $project = Project::factory()->for($this->client, 'client')->create();
+    $legacy = Quotation::factory()->for($project)->create(['dp_percent' => 30, 'payment_terms' => null]);
+
+    expect($legacy->termBps())->toBe([3000, 4000, 3000])
+        ->and($legacy->dpMoney()->amount)->toBe(7_920_000);
+});
+
+it('Invoice DP otomatis memakai termin pertama dari skema kustom', function () {
+    $project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Quoted]);
+    $quotation = ($this->makeSent)($project, ['dp_percent' => 20, 'payment_terms' => [2000, 3000, 5000]]);
+
+    $this->actingAs($this->client);
+    Livewire::test(PortalNegotiation::class, ['project' => $project->id])
+        ->call('startAccept', $quotation->id)->set('agreed', true)->call('accept', $quotation->id)
+        ->assertHasNoErrors();
+
+    expect(Invoice::firstOrFail()->amount)->toBe(5_280_000); // 20% x 26,4 jt
+});
+
+it('persetujuan butuh dua langkah: tanpa konfirmasi dan centang pernyataan, tidak ada yang berubah', function () {
+    $project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Quoted]);
+    $quotation = ($this->makeSent)($project);
+
+    $this->actingAs($this->client);
+    $page = Livewire::test(PortalNegotiation::class, ['project' => $project->id]);
+
+    $page->call('accept', $quotation->id)->assertHasErrors('agreed');
+    $page->call('startAccept', $quotation->id)->assertSet('confirmingId', $quotation->id)
+        ->call('accept', $quotation->id)->assertHasErrors('agreed');
+    $page->call('cancelAccept')->assertSet('confirmingId', null)->assertSet('agreed', false);
+
+    expect($quotation->fresh()->status)->toBe(QuotationStatus::Sent)
+        ->and(Invoice::count())->toBe(0)
+        ->and($project->fresh()->status)->toBe(ProjectStatus::Quoted);
+});
+
+it('persetujuan mencatat waktu, IP, user agent, versi S&K, dan hash snapshot', function () {
+    Setting::query()->create(['key' => 'quotation.terms.id', 'value' => ['value' => 'Revisi maksimal dua kali.']]);
+    $project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Quoted]);
+    $quotation = ($this->makeSent)($project);
+    $service = app(QuotationService::class);
+    $expectedVersion = $service->currentTermsVersion();
+
+    $service->accept($quotation, $this->client, '203.0.113.7', str_repeat('A', 600));
+
+    $quotation->refresh();
+
+    expect($expectedVersion)->toStartWith('tc-')
+        ->and($quotation->accepted_at)->not->toBeNull()
+        ->and($quotation->accepted_ip)->toBe('203.0.113.7')
+        ->and(mb_strlen($quotation->accepted_user_agent))->toBe(512)
+        ->and($quotation->terms_version)->toBe($expectedVersion)
+        ->and($quotation->accepted_snapshot_hash)->toMatch('/^[0-9a-f]{64}$/')
+        ->and($quotation->hasIntactSnapshot())->toBeTrue()
+        ->and(ActivityLog::where('action', ActivityAction::QuotationAccepted->value)->first()->properties['snapshot_hash'])
+        ->toBe($quotation->accepted_snapshot_hash);
+});
+
+it('hash snapshot berubah bila harga atau baris quotation diubah setelah disetujui', function () {
+    $project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Quoted]);
+    $quotation = ($this->makeSent)($project);
+
+    app(QuotationService::class)->accept($quotation, $this->client, '127.0.0.1', 'UA');
+    $accepted = Quotation::findOrFail($quotation->id);
+
+    expect($accepted->hasIntactSnapshot())->toBeTrue();
+
+    QuotationItem::query()->where('quotation_id', $quotation->id)->update(['amount' => 1]);
+
+    expect(Quotation::findOrFail($quotation->id)->hasIntactSnapshot())->toBeFalse();
+});
+
+it('versi S&K berubah mengikuti teks di Pengaturan, dan "none" bila kosong', function () {
+    $service = app(QuotationService::class);
+
+    expect($service->currentTermsVersion())->toBe('none');
+
+    Setting::query()->create(['key' => 'quotation.terms.en', 'value' => ['value' => 'Two revisions included.']]);
+    $first = $service->currentTermsVersion();
+    Setting::query()->where('key', 'quotation.terms.en')->update(['value' => json_encode(['value' => 'Three revisions included.'])]);
+
+    expect($first)->not->toBe('none')->and($service->currentTermsVersion())->not->toBe($first);
 });
 
 it('quotation USD disimpan dalam sen mengikuti mata uang proyek', function () {
@@ -173,10 +344,11 @@ it('quotation yang sudah terkirim tidak bisa diubah; versi baru menggantikan yan
 
     $service->send($v2, $this->admin);
 
-    expect($v1->fresh()->status)->toBe(QuotationStatus::Rejected) // digantikan
+    expect($v1->fresh()->status)->toBe(QuotationStatus::Superseded) // digantikan
         ->and($v2->fresh()->status)->toBe(QuotationStatus::Sent)
         ->and($project->fresh()->status)->toBe(ProjectStatus::Quoted)
-        ->and(ActivityLog::where('action', ActivityAction::QuotationRejected->value)->first()->properties['reason'])->toBe('superseded');
+        ->and(ActivityLog::where('action', ActivityAction::QuotationSuperseded->value)->first()->properties)->toBe(['version' => 1, 'superseded_by' => 2])
+        ->and(ActivityLog::where('action', ActivityAction::QuotationRejected->value)->count())->toBe(0);
 });
 
 it('quotation kosong atau kedaluwarsa tidak bisa dikirim', function () {
@@ -201,7 +373,7 @@ it('klien menyetujui: deal, harga dan mata uang terkunci, Invoice DP terbit, men
 
     $this->actingAs($this->client);
     Livewire::test(PortalNegotiation::class, ['project' => $project->id])
-        ->call('accept', $quotation->id)
+        ->call('startAccept', $quotation->id)->set('agreed', true)->call('accept', $quotation->id)
         ->assertHasNoErrors();
 
     $project->refresh();
@@ -239,7 +411,7 @@ it('persetujuan dari status negotiating juga berjalan, dan skema 30% memakai DP 
     $quotation = ($this->makeSent)($project, ['dp_percent' => 30]);
 
     $this->actingAs($this->client);
-    Livewire::test(PortalNegotiation::class, ['project' => $project->id])->call('accept', $quotation->id);
+    Livewire::test(PortalNegotiation::class, ['project' => $project->id])->call('startAccept', $quotation->id)->set('agreed', true)->call('accept', $quotation->id);
 
     expect($project->fresh()->status)->toBe(ProjectStatus::AwaitingDp)
         ->and(Invoice::firstOrFail()->amount)->toBe(7_920_000); // 30% x 26,4 jt
@@ -250,7 +422,7 @@ it('proyek USD: invoice DP dalam sen dan mata uang tetap USD', function () {
     $quotation = ($this->makeSent)($project, ['currency' => Currency::USD, 'total' => 300_000, 'dp_percent' => 50]);
 
     $this->actingAs($this->client);
-    Livewire::test(PortalNegotiation::class, ['project' => $project->id])->call('accept', $quotation->id);
+    Livewire::test(PortalNegotiation::class, ['project' => $project->id])->call('startAccept', $quotation->id)->set('agreed', true)->call('accept', $quotation->id);
 
     $invoice = Invoice::firstOrFail();
 
@@ -266,7 +438,7 @@ it('nomor invoice berurutan antar proyek', function () {
         $quotation = ($this->makeSent)($project);
 
         $this->actingAs($this->client);
-        Livewire::test(PortalNegotiation::class, ['project' => $project->id])->call('accept', $quotation->id);
+        Livewire::test(PortalNegotiation::class, ['project' => $project->id])->call('startAccept', $quotation->id)->set('agreed', true)->call('accept', $quotation->id);
     }
 
     expect(Invoice::orderBy('invoice_number')->pluck('invoice_number')->all())
@@ -278,7 +450,7 @@ it('persetujuan tidak bisa diulang dan tidak menggandakan invoice', function () 
     $quotation = ($this->makeSent)($project);
 
     $this->actingAs($this->client);
-    Livewire::test(PortalNegotiation::class, ['project' => $project->id])->call('accept', $quotation->id);
+    Livewire::test(PortalNegotiation::class, ['project' => $project->id])->call('startAccept', $quotation->id)->set('agreed', true)->call('accept', $quotation->id);
     Livewire::test(PortalNegotiation::class, ['project' => $project->id])->call('accept', $quotation->id)->assertForbidden();
 
     expect(Invoice::count())->toBe(1);
@@ -334,7 +506,7 @@ it('klien tidak melihat draf dan tidak bisa menanggapi quotation proyek lain', f
     // Draf dan quotation proyek lain tidak ditemukan lewat visibleTo: aksi gagal (404), apa pun bentuk galatnya.
     foreach ([$draft, $foreign] as $target) {
         try {
-            $page->call('accept', $target->id);
+            $page->call('startAccept', $target->id)->set('agreed', true)->call('accept', $target->id);
         } catch (Throwable) {
             // diharapkan
         }
@@ -357,6 +529,22 @@ it('klien tidak melihat operasional dan margin, hanya subtotal, biaya layanan, d
         ->assertDontSee('Margin')
         ->assertDontSee('37,5')
         ->assertDontSee('1.234.567');
+});
+
+it('klien melihat diskon dan PPN terpisah, tetap tanpa operasional dan margin', function () {
+    $project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Quoted]);
+    ($this->makeSent)($project, [
+        'discount_amount' => 400_000, 'tax_bp' => 1100, 'tax_amount' => 2_860_000, 'total' => 28_860_000,
+    ]);
+
+    $this->actingAs($this->client);
+    Livewire::test(PortalNegotiation::class, ['project' => $project->id])
+        ->assertSee('Rp 28.860.000')
+        ->assertSee('Diskon')
+        ->assertSee('PPN (11%)')
+        ->assertSee('Rp 2.860.000')
+        ->assertSee('Rp 6.400.000') // operasional + margin digabung
+        ->assertDontSee('Margin');
 });
 
 it('admin melihat operasional dan margin di builder untuk versi terkirim', function () {

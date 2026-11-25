@@ -29,5 +29,8 @@ return [
         'quotation_sent' => 'Quotation dikirim',
         'quotation_accepted' => 'Quotation disetujui klien',
         'quotation_rejected' => 'Quotation ditolak',
+        'quotation_superseded' => 'Quotation digantikan versi baru',
+        'quotation_expired' => 'Quotation kedaluwarsa',
+        'quotation_reminded' => 'Pengingat masa berlaku quotation',
     ],
 ];

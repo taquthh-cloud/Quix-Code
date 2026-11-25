@@ -29,5 +29,8 @@ return [
         'quotation_sent' => 'Quotation sent',
         'quotation_accepted' => 'Quotation accepted by client',
         'quotation_rejected' => 'Quotation rejected',
+        'quotation_superseded' => 'Quotation superseded by a new version',
+        'quotation_expired' => 'Quotation expired',
+        'quotation_reminded' => 'Quotation expiry reminder',
     ],
 ];

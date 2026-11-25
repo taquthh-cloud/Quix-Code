@@ -48,6 +48,12 @@
                                     <flux:button size="sm" :href="route('admin.quotations.edit', [$project->id, $quotation->id])" wire:navigate>
                                         {{ $quotation->status === \App\Enums\QuotationStatus::Draft ? __('ui.edit') : __('quotations.view') }}
                                     </flux:button>
+                                    @if ($quotations->contains(fn ($other) => $other->version < $quotation->version))
+                                        <flux:button size="sm" variant="ghost" wire:click="toggleCompare('{{ $quotation->id }}')">
+                                            {{ $comparisonCurrent?->id === $quotation->id ? __('quotations.compare.hide') : __('quotations.compare.button') }}
+                                        </flux:button>
+                                    @endif
+                                    <flux:button size="sm" variant="ghost" icon="document-arrow-down" :href="route('quotations.print', $quotation->id)" target="_blank">{{ __('quotations.pdf') }}</flux:button>
                                     @if ($canCreate && $quotation->status !== \App\Enums\QuotationStatus::Draft)
                                         <flux:button size="sm" variant="ghost" wire:click="newVersion('{{ $quotation->id }}')">{{ __('quotations.builder.new_version') }}</flux:button>
                                     @endif
@@ -61,6 +67,13 @@
                     @endforelse
                 </x-table>
             </x-card>
+
+            @if ($comparison)
+                <x-card>
+                    <x-quotation-compare :comparison="$comparison" :currency="$project->currency"
+                                         :old-version="$comparisonPrevious->version" :new-version="$comparisonCurrent->version" />
+                </x-card>
+            @endif
 
             <x-card :title="__('quotations.negotiation.invoices')">
                 @can('create', [\App\Models\Invoice::class, $project])

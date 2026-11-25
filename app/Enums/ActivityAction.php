@@ -29,6 +29,9 @@ enum ActivityAction: string
     case QuotationSent = 'quotation_sent';
     case QuotationAccepted = 'quotation_accepted';
     case QuotationRejected = 'quotation_rejected';
+    case QuotationSuperseded = 'quotation_superseded';
+    case QuotationExpired = 'quotation_expired';
+    case QuotationReminded = 'quotation_reminded';
     case ClientPreviewStarted = 'client_preview_started';
     case ClientPreviewEnded = 'client_preview_ended';
     case MilestoneStatusChanged = 'milestone_status_changed';
