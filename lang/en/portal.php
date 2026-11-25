@@ -5,6 +5,7 @@ return [
     'greeting' => 'Hello, :name. Here are your projects.',
     'no_projects' => 'No projects yet',
     'no_projects_hint' => 'Your projects will show up here.',
+    'unread_messages' => '1 new message|:count new messages',
     'quotation_chat' => 'Quotation & Chat',
     'project_details' => 'Project details',
     'project_progress' => 'Project progress',

@@ -25,8 +25,27 @@ class Room extends Component
     /** Pesan yang ditampilkan: yang terbaru saja. */
     public const WINDOW = 100;
 
+    /** Interval polling adaptif (detik): rapat saat percakapan aktif, merenggang saat sepi. */
+    public const POLL_FAST = 5;
+
+    public const POLL_MEDIUM = 15;
+
+    public const POLL_SLOW = 30;
+
+    /** Jumlah poll tanpa pesan baru sebelum interval naik ke tingkat berikutnya. */
+    public const FAST_TICKS = 6;
+
+    public const MEDIUM_TICKS = 18;
+
     #[Locked]
     public string $projectId;
+
+    /** ID pesan terbaru yang sudah dirender, dan jumlah poll berturut-turut tanpa pesan baru. Hanya server yang boleh mengubahnya. */
+    #[Locked]
+    public int $lastSeenId = 0;
+
+    #[Locked]
+    public int $idleTicks = 0;
 
     public string $message = '';
 
@@ -34,6 +53,16 @@ class Room extends Component
     {
         $this->projectId = $projectId;
         $this->authorize('viewAny', [OrderChat::class, $this->project()]);
+    }
+
+    /** Interval poll untuk jumlah poll sepi berturut-turut: 5 dtk -> 15 dtk -> 30 dtk. */
+    public static function intervalFor(int $idleTicks): int
+    {
+        return match (true) {
+            $idleTicks < self::FAST_TICKS => self::POLL_FAST,
+            $idleTicks < self::MEDIUM_TICKS => self::POLL_MEDIUM,
+            default => self::POLL_SLOW,
+        };
     }
 
     /** Dimuat ulang tiap panggilan lewat visibleTo: properti publik bisa dimanipulasi dari browser. */
@@ -87,6 +116,7 @@ class Room extends Component
         }
 
         $this->reset('message');
+        $this->idleTicks = 0; // percakapan sedang aktif: kembali ke polling rapat
         $this->dispatch('chat-sent');
     }
 
@@ -113,8 +143,19 @@ class Room extends Component
             ->reverse()
             ->values();
 
+        // Pesan baru (dari siapa pun) menjaga polling tetap rapat; render tanpa pesan baru menambah hitungan sepi.
+        $latestId = (int) ($messages->last()?->id ?? 0);
+
+        if ($latestId !== $this->lastSeenId) {
+            $this->lastSeenId = $latestId;
+            $this->idleTicks = 0;
+        } else {
+            $this->idleTicks++;
+        }
+
         return view('livewire.chat.room', [
             'messages' => $messages,
+            'pollSeconds' => self::intervalFor($this->idleTicks),
             'canSend' => $user->can('create', [OrderChat::class, $project]),
             'maxLength' => self::MAX_LENGTH,
         ]);

@@ -5,6 +5,7 @@ return [
     'greeting' => 'Halo, :name. Berikut proyek Anda.',
     'no_projects' => 'Belum ada proyek',
     'no_projects_hint' => 'Proyek Anda akan muncul di sini.',
+    'unread_messages' => ':count pesan baru',
     'quotation_chat' => 'Quotation & Chat',
     'project_details' => 'Detail proyek',
     'project_progress' => 'Progres proyek',

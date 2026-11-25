@@ -8,7 +8,9 @@ use App\Enums\InvoiceType;
 use App\Enums\ProjectStatus;
 use App\Enums\QuotationStatus;
 use App\Events\QuotationExpired;
+use App\Events\DownPaymentInvoiceIssued;
 use App\Events\QuotationExpiringSoon;
+use App\Events\QuotationSent;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\Quotation;
@@ -156,7 +158,7 @@ class QuotationService
     /** Admin mengirim draf ke klien. Proyek lead -> quoted; versi terkirim sebelumnya digantikan. */
     public function send(Quotation $quotation, User $actor): Quotation
     {
-        return DB::transaction(function () use ($quotation, $actor) {
+        $sent = DB::transaction(function () use ($quotation, $actor) {
             $quotation = Quotation::query()->lockForUpdate()->findOrFail($quotation->id);
             $project = Project::query()->lockForUpdate()->findOrFail($quotation->project_id);
 
@@ -205,6 +207,11 @@ class QuotationService
 
             return $quotation;
         });
+
+        // Setelah transaksi selesai: email tidak boleh terkirim untuk perubahan yang akhirnya di-rollback.
+        QuotationSent::dispatch($sent);
+
+        return $sent;
     }
 
     /**
@@ -215,7 +222,7 @@ class QuotationService
      */
     public function accept(Quotation $quotation, User $client, ?string $ip, ?string $userAgent = null): array
     {
-        return DB::transaction(function () use ($quotation, $client, $ip, $userAgent) {
+        $result = DB::transaction(function () use ($quotation, $client, $ip, $userAgent) {
             $quotation = Quotation::query()->lockForUpdate()->findOrFail($quotation->id);
             $project = Project::query()->lockForUpdate()->findOrFail($quotation->project_id);
 
@@ -274,6 +281,10 @@ class QuotationService
 
             return ['quotation' => $quotation, 'invoice' => $invoice];
         });
+
+        DownPaymentInvoiceIssued::dispatch($result['invoice']);
+
+        return $result;
     }
 
     /** Teks S&K / kebijakan revisi dari Pengaturan untuk bahasa tertentu ('' bila belum diisi). */
@@ -368,7 +379,7 @@ class QuotationService
     /**
      * Scheduler harian (T3-06): pengingat satu kali untuk quotation terkirim yang masa berlakunya
      * tinggal REMINDER_DAYS hari atau kurang (termasuk yang berakhir hari ini). Penanda reminded_at
-     * mencegah pengingat ganda. Pengiriman email ada di T3-09 (mendengarkan QuotationExpiringSoon).
+     * mencegah pengingat ganda. Email pengingat dikirim oleh listener QuotationExpiringSoon (T3-09).
      *
      * @return int jumlah pengingat yang dicatat
      */
@@ -418,16 +429,23 @@ class QuotationService
 
     private function createDownPaymentInvoice(Project $project, Quotation $quotation, User $actor): Invoice
     {
+        // Rincian termin pertama: diskon dan PPN mengikuti porsi termin (T3-03).
+        $term = $quotation->termBreakdown()[0];
+
         $invoice = new Invoice([
             'project_id' => $project->id,
             'invoice_number' => InvoiceNumber::next(),
             'type' => InvoiceType::Dp,
             'currency' => $quotation->currency,
-            'amount' => $quotation->dpMoney()->amount,
+            'amount' => $term['amount']->amount,
             'due_date' => now()->addDays(self::DP_DUE_DAYS)->toDateString(),
         ]);
         // Invoice DP otomatis langsung terbit (bukan draf): syarat transisi deal → awaiting_dp.
         $invoice->forceFill([
+            'subtotal' => $term['subtotal']->amount,
+            'discount_amount' => $term['discount']->amount,
+            'tax_amount' => $term['tax']->amount,
+            'term_percent_bp' => $quotation->termBps()[0],
             'status' => InvoiceStatus::Unpaid,
             'issued_at' => now(),
         ])->save();
@@ -436,6 +454,9 @@ class QuotationService
             'invoice_number' => $invoice->invoice_number,
             'type' => $invoice->type->value,
             'currency' => $invoice->currency->value,
+            'subtotal' => $invoice->subtotal,
+            'discount_amount' => $invoice->discount_amount,
+            'tax_amount' => $invoice->tax_amount,
             'amount' => $invoice->amount,
         ], $actor);
 

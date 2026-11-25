@@ -218,3 +218,74 @@ it('invoice print view is authorized for the owner and hidden from other users',
     $this->actingAs($otherClient)->get(route('admin.invoices.print', ['invoice' => $invoice->id]))->assertNotFound();
     $this->actingAs($this->staff)->get(route('admin.invoices.print', ['invoice' => $invoice->id]))->assertNotFound();
 });
+
+it('invoice manual menerapkan diskon lalu PPN dari pengaturan', function () {
+    \App\Models\Setting::query()->create(['key' => 'tax.rate_bp', 'value' => ['basis_points' => 1100]]);
+    $project = Project::factory()->for($this->client, 'client')->create([
+        'status' => ProjectStatus::Active,
+        'currency' => Currency::IDR,
+    ]);
+
+    $this->actingAs($this->admin);
+    Livewire::test(InvoiceManager::class, ['project' => $project->id])
+        ->assertSet('applyTax', true)
+        ->set('type', 'termin')
+        ->set('items', [
+            ['title' => 'Implementasi modul', 'qty' => '1.5', 'unit_price' => '20000'],
+            ['title' => 'Konfigurasi', 'qty' => '2', 'unit_price' => '5000'],
+        ])
+        ->set('discount', '4000')
+        ->call('createInvoice')
+        ->assertHasNoErrors();
+
+    $invoice = Invoice::firstOrFail();
+
+    expect($invoice->subtotal)->toBe(40_000)
+        ->and($invoice->discount_amount)->toBe(4_000)
+        ->and($invoice->tax_amount)->toBe(3_960)  // 11% x 36.000
+        ->and($invoice->amount)->toBe(39_960);
+});
+
+it('invoice manual tanpa PPN bila opsi dimatikan, dan diskon sebesar subtotal ditolak', function () {
+    \App\Models\Setting::query()->create(['key' => 'tax.rate_bp', 'value' => ['basis_points' => 1100]]);
+    $project = Project::factory()->for($this->client, 'client')->create(['status' => ProjectStatus::Active]);
+    $items = [['title' => 'Jasa', 'qty' => '1', 'unit_price' => '10000']];
+
+    $this->actingAs($this->admin);
+    Livewire::test(InvoiceManager::class, ['project' => $project->id])
+        ->set('type', 'termin')
+        ->set('items', $items)
+        ->set('discount', '10000')
+        ->call('createInvoice')
+        ->assertHasErrors('discount');
+
+    expect(Invoice::count())->toBe(0);
+
+    Livewire::test(InvoiceManager::class, ['project' => $project->id])
+        ->set('type', 'termin')
+        ->set('items', $items)
+        ->set('applyTax', false)
+        ->set('discount', '1000')
+        ->call('createInvoice')
+        ->assertHasNoErrors();
+
+    $invoice = Invoice::firstOrFail();
+
+    expect($invoice->tax_amount)->toBe(0)->and($invoice->amount)->toBe(9_000);
+});
+
+it('invoice cetak menampilkan subtotal, diskon, dan PPN, serta baris porsi termin untuk invoice otomatis', function () {
+    $project = Project::factory()->for($this->client, 'client')->create();
+    $invoice = Invoice::factory()->for($project)->create(['amount' => 1_665_000]);
+    $invoice->forceFill([
+        'subtotal' => 1_620_000, 'discount_amount' => 120_000, 'tax_amount' => 165_000, 'term_percent_bp' => 3000,
+    ])->save();
+
+    $this->actingAs($this->client)
+        ->get(route('admin.invoices.print', ['invoice' => $invoice->id]))
+        ->assertOk()
+        ->assertSee('Diskon / Discount')
+        ->assertSee('PPN / VAT')
+        ->assertSee('Subtotal / Subtotal')
+        ->assertSee('Porsi termin: 30% / Term share: 30%');
+});

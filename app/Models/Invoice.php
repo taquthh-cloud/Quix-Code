@@ -36,6 +36,7 @@ class Invoice extends Model
             'subtotal' => 'integer',
             'discount_amount' => 'integer',
             'tax_amount' => 'integer',
+            'term_percent_bp' => 'integer',
             'due_date' => 'date',
             'paid_at' => 'datetime',
             'issued_at' => 'datetime',

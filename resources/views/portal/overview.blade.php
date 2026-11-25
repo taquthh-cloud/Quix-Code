@@ -27,6 +27,9 @@
                             </flux:button>
                             <flux:button size="sm" :href="route('portal.projects.negotiation', $project->id)" wire:navigate>
                                 {{ __('portal.quotation_chat') }}
+                                @if ($project->unread_chats_count > 0)
+                                    <flux:badge size="sm" color="emerald" class="ms-1.5" aria-label="{{ trans_choice('portal.unread_messages', $project->unread_chats_count, ['count' => $project->unread_chats_count]) }}">{{ $project->unread_chats_count }}</flux:badge>
+                                @endif
                             </flux:button>
                         </div>
                     </td>

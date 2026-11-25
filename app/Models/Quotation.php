@@ -137,6 +137,21 @@ class Quotation extends Model
         return PaymentTerms::allocate($this->totalMoney(), $this->termBps());
     }
 
+    /**
+     * Rincian tiap termin: subtotal, diskon, PPN, dan jumlah (T3-03).
+     *
+     * @return list<array{subtotal: Money, discount: Money, tax: Money, amount: Money}>
+     */
+    public function termBreakdown(): array
+    {
+        return PaymentTerms::allocateBreakdown(
+            $this->totalMoney(),
+            $this->discountMoney(),
+            $this->taxMoney(),
+            $this->termBps(),
+        );
+    }
+
     /** Uang muka yang ditagihkan saat deal = termin pertama. */
     public function dpMoney(): Money
     {

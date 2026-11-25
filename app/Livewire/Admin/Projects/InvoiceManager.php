@@ -13,6 +13,8 @@ use App\Models\Project;
 use App\Support\ActivityLogger;
 use App\Support\InvoiceNumber;
 use App\Support\Money;
+use App\Support\QuotationCalculator;
+use App\Support\TaxSettings;
 use Flux\Flux;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -34,6 +36,12 @@ class InvoiceManager extends Component
 
     public string $dueDate = '';
 
+    /** Diskon nominal (satuan utama), dikurangkan sebelum PPN. */
+    public string $discount = '';
+
+    /** Kenakan PPN dengan tarif dari Pengaturan (T3-03). */
+    public bool $applyTax = false;
+
     /** @var array<int, string> */
     public array $paymentRejectionReasons = [];
 
@@ -49,6 +57,13 @@ class InvoiceManager extends Component
             ProjectStatus::AwaitingFinal => InvoiceType::Final->value,
             default => InvoiceType::Termin->value,
         };
+        $this->applyTax = $this->taxRateBp() > 0;
+    }
+
+    /** Tarif PPN dari Pengaturan dalam basis point (0 bila belum diatur). */
+    public function taxRateBp(): int
+    {
+        return TaxSettings::rateBp();
     }
 
     #[Computed]
@@ -77,6 +92,8 @@ class InvoiceManager extends Component
         $data = $this->validate([
             'type' => ['required', Rule::enum(InvoiceType::class)],
             'dueDate' => ['nullable', 'date', 'after_or_equal:today'],
+            'discount' => ['nullable', 'string', 'max:24', 'regex:/^\\d{1,16}(?:\\.\\d{1,2})?$/'],
+            'applyTax' => ['boolean'],
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.title' => ['required', 'string', 'max:180'],
             'items.*.qty' => ['required', 'regex:/^\\d{1,9}(?:\\.\\d{1,3})?$/', 'numeric', 'gt:0', 'max:1000000'],
@@ -131,19 +148,41 @@ class InvoiceManager extends Component
             return;
         }
 
+        // Diskon dikurangkan dari subtotal, PPN dihitung dari sisanya dan dibulatkan sekali (half up).
         try {
-            $invoice = DB::transaction(function () use ($project, $data, $calculatedItems, $subtotal): Invoice {
+            $discount = filled($data['discount'] ?? null)
+                ? Money::fromMajor($data['discount'], $project->currency)
+                : Money::zero($project->currency);
+        } catch (\InvalidArgumentException) {
+            $this->addError('discount', __('projects.invoice.errors.invalid_amount'));
+
+            return;
+        }
+
+        $taxable = $subtotal->subtract($discount);
+        if ($taxable->amount <= 0) {
+            $this->addError('discount', __('projects.invoice.errors.discount_too_large'));
+
+            return;
+        }
+
+        $taxBp = ($data['applyTax'] ?? false) ? $this->taxRateBp() : 0;
+        $tax = $taxable->percent(QuotationCalculator::bpToPercent($taxBp));
+        $total = $taxable->add($tax);
+
+        try {
+            $invoice = DB::transaction(function () use ($project, $data, $calculatedItems, $subtotal, $discount, $tax, $total): Invoice {
                 $invoice = $project->invoices()->make([
                     'invoice_number' => InvoiceNumber::next(),
                     'type' => $data['type'],
                     'currency' => $project->currency,
-                    'amount' => $subtotal->amount,
+                    'amount' => $total->amount,
                     'due_date' => $data['dueDate'] ?: null,
                 ]);
                 $invoice->forceFill([
                     'subtotal' => $subtotal->amount,
-                    'discount_amount' => 0,
-                    'tax_amount' => 0,
+                    'discount_amount' => $discount->amount,
+                    'tax_amount' => $tax->amount,
                     'paid_amount' => 0,
                     'status' => InvoiceStatus::Draft,
                     'issued_at' => null,
@@ -156,6 +195,9 @@ class InvoiceManager extends Component
                 ActivityLogger::log(ActivityAction::InvoiceCreated, $invoice, [
                     'invoice_number' => $invoice->invoice_number,
                     'type' => $invoice->type->value,
+                    'subtotal' => $invoice->subtotal,
+                    'discount_amount' => $invoice->discount_amount,
+                    'tax_amount' => $invoice->tax_amount,
                     'amount' => $invoice->amount,
                     'currency' => $invoice->currency->value,
                     'source' => 'manual',
@@ -170,7 +212,7 @@ class InvoiceManager extends Component
             return;
         }
 
-        $this->reset('type', 'dueDate');
+        $this->reset('type', 'dueDate', 'discount');
         $this->items = [['title' => '', 'qty' => '1', 'unit_price' => '']];
         unset($this->invoices);
         Flux::toast(variant: 'success', text: __('projects.invoice.draft_saved'));

@@ -21,6 +21,7 @@ class OrderChat extends Model
     {
         return [
             'read_at' => 'datetime',
+            'notified_at' => 'datetime',
             'created_at' => 'datetime',
         ];
     }
@@ -43,5 +44,13 @@ class OrderChat extends Model
             UserRole::Client => $query->whereIn($query->qualifyColumn('project_id'), Project::visibleIds($user)),
             UserRole::Staff => $query->whereRaw('0 = 1'),
         };
+    }
+
+    /** Pesan lawan bicara yang belum dibaca $user: hanya yang boleh dilihatnya, bukan pesannya sendiri. */
+    public function scopeUnreadFor(Builder $query, User $user): Builder
+    {
+        return $query->visibleTo($user)
+            ->whereNull($query->qualifyColumn('read_at'))
+            ->where($query->qualifyColumn('sender_id'), '!=', $user->id);
     }
 }

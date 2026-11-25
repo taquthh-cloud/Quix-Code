@@ -47,8 +47,14 @@
                     @endforeach
                 </div>
 
+                <div class="grid items-end gap-4 sm:grid-cols-2">
+                    <flux:input wire:model="discount" type="number" min="0" step="{{ $project->currency->decimals() === 0 ? '1' : '0.01' }}" :label="__('projects.invoice.discount')" />
+                    <flux:checkbox wire:model="applyTax" :label="__('projects.invoice.apply_tax', ['rate' => rtrim(rtrim(\App\Support\QuotationCalculator::bpToPercent($this->taxRateBp()), '0'), '.') ?: '0'])" />
+                </div>
+
                 <flux:error name="type" />
                 <flux:error name="dueDate" />
+                <flux:error name="discount" />
                 <div class="flex justify-end border-t border-slate-200 pt-4 dark:border-slate-800">
                     <flux:button type="submit" variant="primary" wire:loading.attr="disabled">{{ __('projects.invoice.create') }}</flux:button>
                 </div>

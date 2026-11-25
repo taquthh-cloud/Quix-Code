@@ -11,6 +11,7 @@ use App\Services\QuotationService;
 use App\Support\Money;
 use App\Support\PaymentTerms;
 use App\Support\QuotationCalculator;
+use App\Support\TaxSettings;
 use DomainException;
 use Flux\Flux;
 use Illuminate\View\View;
@@ -145,15 +146,7 @@ class Builder extends Component
     /** Tarif PPN dari Pengaturan dalam basis point (0 bila belum diatur). */
     public function taxRateBp(): int
     {
-        $value = Setting::query()->where('key', 'tax.rate_bp')->value('value');
-
-        if (is_string($value)) {
-            $value = json_decode($value, true);
-        }
-
-        $bp = is_array($value) ? ($value['basis_points'] ?? $value['value'] ?? 0) : (int) $value;
-
-        return max(0, min(10_000, (int) $bp));
+        return TaxSettings::rateBp();
     }
 
     private function isEditable(): bool

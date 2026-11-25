@@ -82,4 +82,32 @@ final class PaymentTerms
 
         return $amounts;
     }
+
+    /**
+     * Rincian tiap termin (T3-03): total, diskon, dan PPN dibagi mengikuti porsi termin, selisih
+     * pembulatan masuk termin terakhir. Subtotal termin = total + diskon - PPN, jadi untuk setiap
+     * termin berlaku subtotal - diskon + PPN = jumlah, dan jumlah tiap komponen = nilai quotation.
+     *
+     * @param  list<int>  $basisPoints
+     * @return list<array{subtotal: Money, discount: Money, tax: Money, amount: Money}>
+     */
+    public static function allocateBreakdown(Money $total, Money $discount, Money $tax, array $basisPoints): array
+    {
+        $amounts = self::allocate($total, $basisPoints);
+        $discounts = self::allocate($discount, $basisPoints);
+        $taxes = self::allocate($tax, $basisPoints);
+
+        $rows = [];
+
+        foreach ($amounts as $i => $amount) {
+            $rows[] = [
+                'subtotal' => $amount->add($discounts[$i])->subtract($taxes[$i]),
+                'discount' => $discounts[$i],
+                'tax' => $taxes[$i],
+                'amount' => $amount,
+            ];
+        }
+
+        return $rows;
+    }
 }

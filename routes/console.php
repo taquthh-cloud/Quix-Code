@@ -14,3 +14,6 @@ Artisan::command('inspire', function () {
  */
 Schedule::command('quotations:expire')->dailyAt('00:10')->withoutOverlapping();
 Schedule::command('quotations:remind')->dailyAt('01:00')->withoutOverlapping();
+
+/* Digest email chat (T3-09): pesan belum dibaca dirangkum satu email per proyek dan pengirim. */
+Schedule::command('chat:digest')->everyFiveMinutes()->withoutOverlapping();

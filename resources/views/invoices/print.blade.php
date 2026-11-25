@@ -20,6 +20,9 @@
         th, td { padding: 12px 10px; border-bottom: 1px solid #dce4df; text-align: left; }
         th { color: #53635c; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
         .numeric { text-align: right; font-variant-numeric: tabular-nums; }
+        .summary { margin: 20px 0 0 auto; width: 100%; max-width: 360px; border-collapse: collapse; }
+        .summary td { padding: 6px 10px; border-bottom: 0; }
+        .summary tr.grand td { border-top: 2px solid #145c49; font-size: 20px; font-weight: 700; padding-top: 12px; }
         .total { display: flex; justify-content: flex-end; margin-top: 20px; font-size: 20px; font-weight: 700; }
         .status { display: inline-block; margin-top: 18px; border: 1px solid #dce4df; border-radius: 999px; padding: 5px 10px; font-size: 13px; }
         footer { margin-top: 48px; border-top: 1px solid #dce4df; padding-top: 16px; font-size: 12px; }
@@ -62,17 +65,51 @@
                 <th class="numeric">{{ __('projects.invoice.amount', [], 'id') }} / {{ __('projects.invoice.amount', [], 'en') }}</th>
             </tr></thead>
             <tbody>
-                @foreach ($invoice->items as $item)
+                @forelse ($invoice->items as $item)
                     <tr>
                         <td>{{ $item->title }}</td>
                         <td class="numeric">{{ rtrim(rtrim(number_format((float) $item->qty, 3, '.', ''), '0'), '.') }}</td>
                         <td class="numeric">{{ \App\Support\Money::of($item->unit_price, $invoice->currency)->format() }}</td>
                         <td class="numeric">{{ \App\Support\Money::of($item->amount, $invoice->currency)->format() }}</td>
                     </tr>
-                @endforeach
+                @empty
+                    {{-- Invoice DP/termin otomatis tidak punya baris item: tampilkan satu baris porsi termin. --}}
+                    <tr>
+                        <td colspan="3">
+                            {{ __('enums.invoice_type.'.$invoice->type->value, [], 'id') }} / {{ __('enums.invoice_type.'.$invoice->type->value, [], 'en') }}
+                            @if ($invoice->term_percent_bp)
+                                · {{ __('projects.invoice.term_share', ['percent' => rtrim(rtrim(\App\Support\QuotationCalculator::bpToPercent($invoice->term_percent_bp), '0'), '.')], 'id') }} / {{ __('projects.invoice.term_share', ['percent' => rtrim(rtrim(\App\Support\QuotationCalculator::bpToPercent($invoice->term_percent_bp), '0'), '.')], 'en') }}
+                            @endif
+                        </td>
+                        <td class="numeric">{{ \App\Support\Money::of((int) $invoice->subtotal, $invoice->currency)->format() }}</td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
-        <div class="total"><span>{{ __('projects.invoice.total', [], 'id') }} / {{ __('projects.invoice.total', [], 'en') }}: &nbsp;</span><span>{{ $invoice->money()->format() }}</span></div>
+        <table class="summary">
+            @if ($invoice->discount_amount > 0 || $invoice->tax_amount > 0)
+                <tr>
+                    <td>{{ __('projects.invoice.subtotal', [], 'id') }} / {{ __('projects.invoice.subtotal', [], 'en') }}</td>
+                    <td class="numeric">{{ \App\Support\Money::of((int) $invoice->subtotal, $invoice->currency)->format() }}</td>
+                </tr>
+            @endif
+            @if ($invoice->discount_amount > 0)
+                <tr>
+                    <td>{{ __('projects.invoice.discount', [], 'id') }} / {{ __('projects.invoice.discount', [], 'en') }}</td>
+                    <td class="numeric">-{{ \App\Support\Money::of((int) $invoice->discount_amount, $invoice->currency)->format() }}</td>
+                </tr>
+            @endif
+            @if ($invoice->tax_amount > 0)
+                <tr>
+                    <td>{{ __('projects.invoice.tax', [], 'id') }} / {{ __('projects.invoice.tax', [], 'en') }}</td>
+                    <td class="numeric">{{ \App\Support\Money::of((int) $invoice->tax_amount, $invoice->currency)->format() }}</td>
+                </tr>
+            @endif
+            <tr class="grand">
+                <td>{{ __('projects.invoice.total', [], 'id') }} / {{ __('projects.invoice.total', [], 'en') }}</td>
+                <td class="numeric">{{ $invoice->money()->format() }}</td>
+            </tr>
+        </table>
         <span class="status">{{ __('enums.invoice_status.'.$invoice->status->value, [], 'id') }} / {{ __('enums.invoice_status.'.$invoice->status->value, [], 'en') }}</span>
         @if ($bank['name'] || $bank['account_name'] || $bank['account_number'])
             <section class="client">
